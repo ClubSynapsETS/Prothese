@@ -1,0 +1,21 @@
+Benchmarks : 
+
+
+	Acquisition rates : 
+
+		** for the following benchmarks, all print-outs were commented from the code, for
+		   maximum effiency.
+
+		- Raw data buffer (in "maintain_pipeline_buffer" function) :
+
+			- Buffer fill time (avg for 50 segments) = 0.125 seconds
+			- Buffer fill frequency = 8 Hz
+
+		- Pipeline buffer (in ) : 
+
+			With active hand movement : 
+
+				- Buffer fill time (avg for 50 fills) = 0.1253
+				- Buffer fill frequency = 7.98
+
+

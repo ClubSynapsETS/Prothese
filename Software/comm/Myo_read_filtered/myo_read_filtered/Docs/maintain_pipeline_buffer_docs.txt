@@ -1,0 +1,18 @@
+Maintain pipeline buffer : 
+
+	- launches the myo data acquisition process which fills the raw data buffer
+
+	- pulls from the raw data buffer and creates Active data instances (check "rest_zone_docs")
+
+	- Active data instances are put in a queue (fifo), and are used to fill the pipeline buffer
+	* it may take more than on active data instance to fill the pipeline buffer. 
+
+	- when the pipeline data is filled with "active data", a flag (buffer_ready) is flipped via	       redis db to let the main program that new data is available.
+
+	- the buffer maintenance loop runs until a problem occurs in the data acquisition sub
+	  process. 
+
+
+
+
+

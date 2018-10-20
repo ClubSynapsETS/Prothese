@@ -1,0 +1,38 @@
+Rest zones : 
+
+	Definition : 
+
+		Period where the data sent from the all 8 emg sensors is a "flat line"
+		(no active signal). 
+
+		There are no rest zones during a movement. 
+
+		Rest zones can surround a period where the sensors record movement. A rest zone
+		before and/or after the movement period. 
+
+
+		The start of a rest zone can mark the ending of a movement.
+		The end of a rest zone cam mark the beginning of a movement.
+
+
+
+	Removing rest zones from data :
+
+		A buffer of n data slots (20 by default) is slid across the 50 input points. 
+		
+		As the buffer moves (1->2 and 20->21) a rms is calculated with all of the buffers
+		members. If the rms value for the buffer members is under a certain value/thresh "k"
+		the buffer marks a rest zone. 
+		  
+
+	Result of removing rest zones : 
+
+		Once rest zones are removed from data, the data is turned into an "ActiveData"
+		instance. 
+
+		Active data instances deail if the data contained a rest zone and isolates : 
+
+			data before the first rest zone
+			after the last rest zone 
+
+
