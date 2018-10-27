@@ -7,7 +7,6 @@
 */
 
 
-
 /****************************************************************************
 *
 * This file is for gatt client. It can scan ble device, connect one device.
@@ -33,14 +32,15 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 
+#include "gattc_service_details.h"
+
 #define GATTC_TAG "GATTC_DEMO"
-#define REMOTE_SERVICE_UUID        0x00FF
-#define REMOTE_NOTIFY_CHAR_UUID    0xFF01
 #define PROFILE_NUM      1
 #define PROFILE_A_APP_ID 0
 #define INVALID_HANDLE   0
 
-static const char remote_device_name[] = "ESP_GATTS_DEMO";
+//TODO: Fix device name / device MAC address
+static const char remote_device_name[] = "PLACE HOLDER";
 static bool connect    = false;
 static bool get_server = false;
 static esp_gattc_char_elem_t *char_elem_result   = NULL;
@@ -53,13 +53,13 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
 
 
 static esp_bt_uuid_t remote_filter_service_uuid = {
-    .len = ESP_UUID_LEN_16,
-    .uuid = {.uuid16 = REMOTE_SERVICE_UUID,},
+    .len = ESP_UUID_LEN_128,
+    .uuid = {.uuid128 = MYO_MOUVEMENT_SERVICE_UUID,},
 };
 
 static esp_bt_uuid_t remote_filter_char_uuid = {
     .len = ESP_UUID_LEN_16,
-    .uuid = {.uuid16 = REMOTE_NOTIFY_CHAR_UUID,},
+    .uuid = {.uuid16 = myomv_,},
 };
 
 static esp_bt_uuid_t notify_descr_uuid = {
@@ -94,6 +94,22 @@ static struct gattc_profile_inst gl_profile_tab[PROFILE_NUM] = {
         .gattc_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
 };
+
+/* Compare 128 uuid*/
+static int compare_128uuid(uint8_t *uuidref, uint8_t *uuidcmp)
+{
+    int i;
+    for(i=0; i<ESP_UUID_LEN_128; i++)
+        if(uuidref[i] != uuidcmp[i])
+        { 
+            //limit UUIDs showing on terminal
+            if(i>1)
+                printf("Incorrect UUID: %x, Expecting %x\n", uuidcmp[i], uuidref[i]);  
+            return 0; 
+        }
+
+    return 1;
+}
 
 static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
 {
@@ -136,12 +152,13 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     case ESP_GATTC_SEARCH_RES_EVT: {
         ESP_LOGI(GATTC_TAG, "SEARCH RES: conn_id = %x is primary service %d", p_data->search_res.conn_id, p_data->search_res.is_primary);
         ESP_LOGI(GATTC_TAG, "start handle %d end handle %d current handle value %d", p_data->search_res.start_handle, p_data->search_res.start_handle, p_data->search_res.srvc_id.inst_id);
-        if (p_data->search_res.srvc_id.uuid.len == ESP_UUID_LEN_16 && p_data->search_res.srvc_id.uuid.uuid.uuid16 == REMOTE_SERVICE_UUID) {
+        if (p_data->search_res.srvc_id.uuid.len == ESP_UUID_LEN_128 && 
+                compare128_uuid(p_data->search_res.srvc_id.uuid.uuid.uuid128, remote_filter_service_uuid.uuid.uuid128)){
             ESP_LOGI(GATTC_TAG, "service found");
             get_server = true;
             gl_profile_tab[PROFILE_A_APP_ID].service_start_handle = p_data->search_res.start_handle;
             gl_profile_tab[PROFILE_A_APP_ID].service_end_handle = p_data->search_res.end_handle;
-            ESP_LOGI(GATTC_TAG, "UUID16: %x", p_data->search_res.srvc_id.uuid.uuid.uuid16);
+            ESP_LOGI(GATTC_TAG, "Connected to Myo mouvement service.");
         }
         break;
     }
@@ -165,6 +182,7 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             }
 
             if (count > 0){
+                ESP_LOGI(GATTC_TAG, "Attribute count is at %d", count);
                 char_elem_result = (esp_gattc_char_elem_t *)malloc(sizeof(esp_gattc_char_elem_t) * count);
                 if (!char_elem_result){
                     ESP_LOGE(GATTC_TAG, "gattc no mem");
@@ -180,6 +198,7 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
                         ESP_LOGE(GATTC_TAG, "esp_ble_gattc_get_char_by_uuid error");
                     }
 
+                    //TODO: Figure this part out
                     /*  Every service have only one char in our 'ESP_GATTS_DEMO' demo, so we used first 'char_elem_result' */
                     if (count > 0 && (char_elem_result[0].properties & ESP_GATT_CHAR_PROP_BIT_NOTIFY)){
                         gl_profile_tab[PROFILE_A_APP_ID].char_handle = char_elem_result[0].char_handle;
@@ -442,6 +461,12 @@ void app_main()
     }
 
     ret = esp_bluedroid_enable();
+    if (ret) {
+        ESP_LOGE(GATTC_TAG, "%s enable bluetooth failed: %s\n", __func__, esp_err_to_name(ret));
+        return;
+    }
+
+    ret = esp_bt_dev_set_device_name("ESP32_Prosthesis");
     if (ret) {
         ESP_LOGE(GATTC_TAG, "%s enable bluetooth failed: %s\n", __func__, esp_err_to_name(ret));
         return;
