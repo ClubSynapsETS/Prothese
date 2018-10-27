@@ -1,7 +1,10 @@
 import numpy as np
 import json
 
-# importing pipeline utilities
+# importing time utilities 
+from time import sleep
+
+# importing myo communication utilities
 from myo_read_raw.pipeline_buffer import maintain_pipeline_buffer, reset_pipeline_buff_flags
 from myo_read_raw.pipeline_buffer import init_redis_variables, redis_db_id
 
@@ -28,6 +31,9 @@ if __name__ == "__main__":
     # launching the buffer maintenance as a subprocess
     buffer_maintenance_p = Process(target=maintain_pipeline_buffer, args=(conn_pool, pipeline_buffer_size))
     buffer_maintenance_p.start()
+
+    # waiting for confirmation that myo is connected (data  is received)
+    while(r_server.get("buffer_ready") != "1"): sleep(0.05)
 
     # while the incoming buffer is maintained
     while(r_server.get("buffer_maintained") == "1"):

@@ -146,7 +146,7 @@ def maintain_pipeline_buffer(conn_pool, new_pipeline_buff_size=None):
 
     # changing the pipeline buffer size to a user defined value
     global pipeline_buff_size
-    if new_pipeline_buff_size is None : 
+    if new_pipeline_buff_size is not None : 
         pipeline_buff_size = new_pipeline_buff_size
 
     # creating redis connection for current process

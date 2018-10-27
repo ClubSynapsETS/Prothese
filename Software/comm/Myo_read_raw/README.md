@@ -8,11 +8,13 @@
     - linux (ubuntu)
     - Python3.6
     - pip3
-    - redis server (sudo apt-get install redis)
+    - redis server (sudo apt-get install redis-server)
 
 # Installing python requirements
     - pip3 install -r requirements.txt
     
 # Installing the Myo_read_raw package
-    - Navigate to the "myo_read_raw" folder
+    - Copy the "myo_read_raw" folder next to the "exemple.py" file
+    - Paste the folder in the wanted location (ex : Downloaded modules folder) 
+    - From the command line, navigate to the pasted folder
     - pip3 install -e myo_read_raw

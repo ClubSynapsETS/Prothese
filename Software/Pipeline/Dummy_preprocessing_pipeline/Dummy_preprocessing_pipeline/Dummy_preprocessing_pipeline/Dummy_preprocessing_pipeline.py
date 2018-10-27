@@ -1,6 +1,6 @@
 import numpy as np
 
-# pipe line stuff 
+# pipe line utilities
 from sklearn.pipeline import Pipeline
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler

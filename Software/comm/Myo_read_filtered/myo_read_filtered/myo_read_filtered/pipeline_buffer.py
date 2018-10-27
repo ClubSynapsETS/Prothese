@@ -158,7 +158,7 @@ def maintain_pipeline_buffer(conn_pool, new_pipeline_buff_size=None):
     global data_cluster_store, data_store_max_size, pipeline_buff_size
 
     # changing the pipeline_buff_size (global var) for all functions
-    if new_pipeline_buff_size is None : 
+    if new_pipeline_buff_size is not None : 
         pipeline_buff_size = new_pipeline_buff_size
 
     # local version of the pipeline buffer
