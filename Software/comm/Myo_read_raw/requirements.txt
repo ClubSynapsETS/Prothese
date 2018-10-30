@@ -5,3 +5,5 @@ redis==2.10.6
 scipy==1.1.0
 simplejson==3.11.1
 sklearn==0.0
+serial==0.0.70
+pyserial==3.4

@@ -1,3 +1,15 @@
+from __future__ import print_function
+import dbus, dbus.exceptions, dbus.mainloop.glib, dbus.service
+import array
+
+try:
+  from gi.repository import GObject
+except ImportError:
+  import gobject as GObject
+import advertising, gatt_server, argparse
+
+import myo_read
+
 import numpy as np
 import json
 
@@ -16,8 +28,8 @@ from multiprocessing.managers import BaseManager
 # importing pose definitions
 from myo_read_raw.myo_raw import Pose
 
-if __name__ == "__main__":
 
+def myo_comm_main():
     # creating redis connection pool (for multiple connected processes)
     conn_pool = redis.ConnectionPool(host='localhost', port=6379, db=redis_db_id, decode_responses=True)
 
@@ -34,7 +46,6 @@ if __name__ == "__main__":
 
     # waiting for confirmation that myo is connected (data  is received)
     while(r_server.get("buffer_ready") != "1"): sleep(0.05)
-
     # while the incoming buffer is maintained
     while(r_server.get("buffer_maintained") == "1"):
 
@@ -52,5 +63,26 @@ if __name__ == "__main__":
             r_server.set("pose_data_ready", "0")
 
 
-    buffer_maintenance_p.join()
+
+def micro_comm():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--adapter-name', type=str, help='Adapter name', default='')
+    args = parser.parse_args()
+    adapter_name = args.adapter_name
+
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    dbus.mainloop.glib.threads_init()
+    bus = dbus.SystemBus()
+    mainloop = GObject.MainLoop()
+    GObject.threads_init()
+
+    advertising.advertising_main(mainloop, bus, adapter_name)
+    gatt_server.gatt_server_main(mainloop, bus, adapter_name)
+    # myo_read.myo_comm_main()
+
+    mainloop.run()
+
+if __name__ == '__main__':
+    myo_comm_main()
+    micro_comm()
 

@@ -74,19 +74,19 @@ def create_myo_connection(r_server):
             n_tries -= 1
             sleep(1)
             if(n_tries == 0):
-                raise BluetoothFailedConnection("Bluetooth connection failed") 
-        
+                raise BluetoothFailedConnection("Bluetooth connection failed")
+
     # defining the emg raw value handler
     def proc_emg(emg, moving, times=[]):
 
         global raw_incoming_data
-        
+
         # appending incoming data to the raw data buffer
         emg_list = list(emg)
         raw_incoming_data = np.c_[raw_incoming_data, emg_list]
 
         # when raw data buffer reaches max size, transfering it to db
-        if(raw_incoming_data.shape[1] == pipeline_buff_size): 
+        if(raw_incoming_data.shape[1] == pipeline_buff_size):
             # parent process is ready for transfer
             if(r_server.get("raw_data_ready") == "0"):
                 r_server.set("raw_data", json.dumps(raw_incoming_data.tolist()))
@@ -103,10 +103,10 @@ def create_myo_connection(r_server):
     # attaching the handlers
     m.add_emg_handler(proc_emg)
     m.add_pose_handler(proc_pose)
-    
+
     m.connect()
-    print("myo connected") 
-   
+    print("myo connected")
+
     return m
 
 
