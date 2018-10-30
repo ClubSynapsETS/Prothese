@@ -1,4 +1,5 @@
 
+#include <stdint.h>
 
 
 /* Service: Myo Mouvement
@@ -33,19 +34,32 @@
  *   }
  */
 
+//Static?
+#define ZACKB_BDA   { \
+    0x00, 0x1A, 0x7D, \
+    0xDA, 0x71, 0x13  \
+}
+
 #define MYO_MOUVEMENT_SERVICE_UUID { \
     0x49, 0x17, 0x8c, 0x65,          \
     0x00, 0x00, 0x06, 0xb5,          \
     0x4f, 0x43, 0xd5, 0x8f,          \
-    0x7f, 0x97, 0xa0, 0x69,          \
+    0x7f, 0x97, 0xa0, 0x69           \
+}
+
+#define MYOMV_POSE_CHRC_UUID       { \
+    0x49, 0x17, 0x8c, 0x65,          \
+    0x01, 0x00, 0x06, 0xb5,          \
+    0x4f, 0x43, 0xd5, 0x8f,          \
+    0x7f, 0x97, 0xa0, 0x69           \
 }
 
 typedef enum 
 {
     MouvementChrc       = 0x0001,
     ModeChrc            = 0x0002,
-    LogsChrc            = 0x0003,
-} myomv_chrc;
+    LogsChrc            = 0x0003
+};
 
 // Defined prosthesis mouvements.
 enum prot_mv 
@@ -64,3 +78,5 @@ enum prot_mv
 
 
 
+static int compare_array(uint8_t *uuidref, uint8_t *uuidcmp, int size);
+void bt_app_launch();

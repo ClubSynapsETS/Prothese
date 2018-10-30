@@ -16,8 +16,7 @@ from multiprocessing.managers import BaseManager
 # importing pose definitions
 from myo_read_raw.myo_raw import Pose
 
-if __name__ == "__main__":
-
+def myo_comm_main():
     # creating redis connection pool (for multiple connected processes)
     conn_pool = redis.ConnectionPool(host='localhost', port=6379, db=redis_db_id, decode_responses=True)
 

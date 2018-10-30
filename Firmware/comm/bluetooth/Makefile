@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := bluetooth_gattc_app
+PROJECT_NAME := gatt_client_demo
 
 COMPONENT_ADD_INCLUDEDIRS := components/include
 
