@@ -24,6 +24,7 @@ def main():
     bus = dbus.SystemBus()
     mainloop = GObject.MainLoop()
 
+    
     advertising.advertising_main(mainloop, bus, adapter_name)
     gatt_server.gatt_server_main(mainloop, bus, adapter_name)
     mainloop.run()
