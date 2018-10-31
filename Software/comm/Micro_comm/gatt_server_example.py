@@ -9,10 +9,9 @@ try:
   from gi.repository import GObject
 except ImportError:
   import gobject as GObject
-import advertising
-import gatt_server
 import argparse
 
+from micro_comm import advertising, gatt_server
 
 def main():
     parser = argparse.ArgumentParser()
@@ -24,7 +23,6 @@ def main():
     bus = dbus.SystemBus()
     mainloop = GObject.MainLoop()
 
-    
     advertising.advertising_main(mainloop, bus, adapter_name)
     gatt_server.gatt_server_main(mainloop, bus, adapter_name)
     mainloop.run()

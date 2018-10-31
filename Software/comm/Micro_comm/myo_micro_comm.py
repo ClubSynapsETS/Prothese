@@ -6,9 +6,9 @@ try:
   from gi.repository import GLib
 except ImportError:
   import gobject as GObject
-import advertising, gatt_server, argparse
-
-import myo_read
+import micro_comm.advertising as advertising
+import micro_comm.gatt_server as gatt_server
+import argparse
 
 import numpy as np
 import json
@@ -45,7 +45,7 @@ def myo_comm_main(conn_pool):
 
 
 
-def micro_comm(conn_pool):
+def micro_comm_connection(conn_pool):
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--adapter-name', type=str, help='Adapter name', default='')
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     r_server = init_redis_variables(r_server)
 
 
-    microc_param = micro_comm(conn_pool)
+    microc_param = micro_comm_connection(conn_pool)
     #NOT A PROCESS, dbus mainloop object
     microcomm_loop = microc_param[0]
     microcomm_p = Process(target=microcomm_loop.run)
@@ -113,4 +113,4 @@ if __name__ == '__main__':
 
     myocomm_p.join()
     microcomm_loop.quit()
-    microcomm_p.join()
+    microcomm_p.join(10)

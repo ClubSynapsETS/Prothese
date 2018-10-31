@@ -1,12 +1,12 @@
-rom __future__ import print_function
+from __future__ import print_function
 import dbus
 import dbus.exceptions
 import dbus.mainloop.glib
 import dbus.service
 import functools
 
-import exceptions
-import adapters
+import micro_comm.exceptions as exceptions
+import micro_comm.adapters as adapters
 
 
 BLUEZ_SERVICE_NAME = 'org.bluez'
@@ -90,13 +90,10 @@ class Advertisement(dbus.service.Object):
         print('%s: Released!' % self.path)
 
 
-class TestAdvertisement(Advertisement):
+class Pc_Micro_Advert(Advertisement):
     def __init__(self, bus, index):
+        #insert advert info here
         Advertisement.__init__(self, bus, index, 'peripheral')
-        self.add_service_uuid('180D')
-        self.add_service_uuid('180F')
-        self.add_manufacturer_data(0xffff, [0x00, 0x01, 0x02, 0x03, 0x04])
-        self.add_service_data('9999', [0x00, 0x01, 0x02, 0x03, 0x04])
         self.include_tx_power = True
 
 
@@ -111,20 +108,25 @@ def register_ad_error_cb(mainloop, error):
 
 def advertising_main(mainloop, bus, adapter_name):
     adapter = adapters.find_adapter(bus, LE_ADVERTISING_MANAGER_IFACE, adapter_name)
-    print('adapter: %s' % (adapter,))
+    print('\nadapter: %s' % (adapter,))
     if not adapter:
         raise Exception('LEAdvertisingManager1 interface not found')
 
     adapter_props = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, adapter),
                                    "org.freedesktop.DBus.Properties")
 
+    #get set device config. Note: Name cannont be modified trough this API
     adapter_props.Set("org.bluez.Adapter1", "Powered", dbus.Boolean(1))
+    dev_add = adapter_props.Get("org.bluez.Adapter1", "Address")
+    dev_name = adapter_props.Get("org.bluez.Adapter1", "Name")
+
+    print('adapter name: %s, address: %s\n' % (dev_name, dev_add,))
 
     ad_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE_NAME, adapter),
                                 LE_ADVERTISING_MANAGER_IFACE)
 
-    test_advertisement = TestAdvertisement(bus, 0)
+    advertisement = Pc_Micro_Advert(bus, 0)
 
-    ad_manager.RegisterAdvertisement(test_advertisement.get_path(), {},
+    ad_manager.RegisterAdvertisement(advertisement.get_path(), {},
                                      reply_handler=register_ad_cb,
                                      error_handler=functools.partial(register_ad_error_cb, mainloop))
