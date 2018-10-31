@@ -33,6 +33,12 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 
+<<<<<<< HEAD:Firmware/comm/bluetooth/main/ble_app.c
+=======
+#include "freertos/queue.h"
+#include "driver/gpio.h"
+
+>>>>>>> refs/remotes/origin/master:Firmware/comm/bluetooth/main/ble_app.c
 #include "ble_service_details.h"
 
 #define GATTC_TAG "GATTC_DEMO"
@@ -40,6 +46,14 @@
 #define PROFILE_A_APP_ID 0
 #define INVALID_HANDLE   0
 
+<<<<<<< HEAD:Firmware/comm/bluetooth/main/ble_app.c
+=======
+#define GPIO_OUTPUT_IO_0    18
+#define GPIO_OUTPUT_IO_1    19
+#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_OUTPUT_IO_0) | (1ULL<<GPIO_OUTPUT_IO_1))
+#define ESP_INTR_FLAG_DEFAULT 0
+
+>>>>>>> refs/remotes/origin/master:Firmware/comm/bluetooth/main/ble_app.c
 static const char remote_device_name[] = "zackB";
 static bool connect    = false;
 static bool get_server = false;
@@ -296,6 +310,25 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, receive indicate value:");
         }
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
+<<<<<<< HEAD:Firmware/comm/bluetooth/main/ble_app.c
+=======
+        switch (p_data->notify.value[1])
+        {
+            //resting
+            case 0: //do nothing
+                break;
+            //Fist
+            case 1: gpio_set_level(GPIO_OUTPUT_IO_0, 0); break;
+            //finger spread
+            case 4: gpio_set_level(GPIO_OUTPUT_IO_0, 1); break;
+            //wave in
+            case 2: gpio_set_level(GPIO_OUTPUT_IO_1, 0); break;
+            //wave out
+            case 3: gpio_set_level(GPIO_OUTPUT_IO_1, 1); break;
+            default: break;
+
+        }
+>>>>>>> refs/remotes/origin/master:Firmware/comm/bluetooth/main/ble_app.c
         //store value here!
         break;
     case ESP_GATTC_WRITE_DESCR_EVT:
@@ -453,6 +486,23 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 }
 
 
+<<<<<<< HEAD:Firmware/comm/bluetooth/main/ble_app.c
+=======
+/*TEMP GPIO pin config*/
+void gpio_pin_config();
+void gpio_pin_config()
+{
+
+    gpio_config_t io_conf;
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    io_conf.pull_down_en = 0;
+    io_conf.pull_up_en = 0;
+    gpio_config(&io_conf);
+}
+
+>>>>>>> refs/remotes/origin/master:Firmware/comm/bluetooth/main/ble_app.c
 
 void bt_app_launch();
 
@@ -522,5 +572,6 @@ void bt_app_launch()
         ESP_LOGE(GATTC_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
+    gpio_pin_config();
 }
 

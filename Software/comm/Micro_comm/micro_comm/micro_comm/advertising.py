@@ -5,8 +5,8 @@ import dbus.mainloop.glib
 import dbus.service
 import functools
 
-import exceptions
-import adapters
+import micro_comm.exceptions as exceptions
+import micro_comm.adapters as adapters
 
 
 BLUEZ_SERVICE_NAME = 'org.bluez'
@@ -130,4 +130,3 @@ def advertising_main(mainloop, bus, adapter_name):
     ad_manager.RegisterAdvertisement(advertisement.get_path(), {},
                                      reply_handler=register_ad_cb,
                                      error_handler=functools.partial(register_ad_error_cb, mainloop))
-

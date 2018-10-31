@@ -15,8 +15,8 @@ except ImportError:
 
 from random import randint
 
-import exceptions
-import adapters
+import micro_comm.exceptions as exceptions
+import micro_comm.adapters as adapters
 
 BLUEZ_SERVICE_NAME = 'org.bluez'
 LE_ADVERTISING_MANAGER_IFACE = 'org.bluez.LEAdvertisingManager1'
@@ -42,7 +42,10 @@ class Application(dbus.service.Object):
         self.services = []
         dbus.service.Object.__init__(self, bus, self.path)
         self.add_service(MyoMouvementService(bus, 0))
+<<<<<<< HEAD:Software/comm/Micro_comm/gatt_server.py
         # self.add_service(HeartRateService(bus, 1))
+=======
+>>>>>>> refs/remotes/origin/master:Software/comm/Micro_comm/micro_comm/micro_comm/gatt_server.py
 
     def get_path(self):
         return dbus.ObjectPath(self.path)

@@ -9,10 +9,9 @@ try:
   from gi.repository import GObject
 except ImportError:
   import gobject as GObject
-import advertising
-import gatt_server
 import argparse
 
+from micro_comm import advertising, gatt_server
 
 def main():
     parser = argparse.ArgumentParser()
