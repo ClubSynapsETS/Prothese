@@ -6,15 +6,12 @@ try:
   from gi.repository import GLib
 except ImportError:
   import gobject as GObject
-<<<<<<< HEAD
 import advertising, gatt_server, argparse
 
 import myo_read
-=======
 import micro_comm.advertising as advertising
 import micro_comm.gatt_server as gatt_server
 import argparse
->>>>>>> refs/remotes/origin/master
 
 import numpy as np
 import json
@@ -45,24 +42,17 @@ def myo_comm_main(conn_pool):
 
     # launching the buffer maintenance as a subprocess
     buffer_maintenance_p = Process(target=maintain_pipeline_buffer, args=(conn_pool, pipeline_buffer_size))
-<<<<<<< HEAD
     buffer_maintenance_p.start()
 
     # waiting for confirmation that myo is connected (data  is received)
     while(r_server.get("buffer_ready") != "1"): sleep(0.05)
-=======
->>>>>>> refs/remotes/origin/master
 
     #return Process to the main thread
     return buffer_maintenance_p
 
 
 
-<<<<<<< HEAD
 def micro_comm(conn_pool):
-=======
-def micro_comm_connection(conn_pool):
->>>>>>> refs/remotes/origin/master
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--adapter-name', type=str, help='Adapter name', default='')
@@ -80,11 +70,8 @@ def micro_comm_connection(conn_pool):
     #Link to shared memory space in bluetooth handler
     data_handler = gatt_server.gatt_server_main(gatts_loop, bus, adapter_name)
 
-<<<<<<< HEAD
     gatts_loop.run()
 
-=======
->>>>>>> refs/remotes/origin/master
     return (gatts_loop, data_handler)
 
 
@@ -98,7 +85,6 @@ if __name__ == '__main__':
     r_server = redis.StrictRedis(connection_pool=conn_pool)
     r_server = init_redis_variables(r_server)
 
-<<<<<<< HEAD
     #Start Myo connection and and link to redis buffer
     myocomm_p = myo_comm_main(conn_pool)
 
@@ -108,7 +94,6 @@ if __name__ == '__main__':
     # micro_comm data handler
     microh = microc_param[1]
 
-=======
 
     microc_param = micro_comm_connection(conn_pool)
     #NOT A PROCESS, dbus mainloop object
@@ -123,7 +108,6 @@ if __name__ == '__main__':
     myocomm_p = myo_comm_main(conn_pool)
     myocomm_p.name = "myo_raw"
     myocomm_p.start()
->>>>>>> refs/remotes/origin/master
 
     print("redis status: "+str(r_server.get("buffer_maintained")) + "comm loop="
             +str(microcomm_loop.is_running()))
@@ -147,7 +131,4 @@ if __name__ == '__main__':
 
     myocomm_p.join()
     microcomm_loop.quit()
-<<<<<<< HEAD
-=======
     microcomm_p.join(10)
->>>>>>> refs/remotes/origin/master
