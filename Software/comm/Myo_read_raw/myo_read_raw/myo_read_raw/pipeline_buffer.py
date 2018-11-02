@@ -38,10 +38,13 @@ def init_redis_variables(r_server):
 
     # defining buffer maintenance flags
     r_server.set("buffer_ready", "0")
-    r_server.set("buffer_maintained", "1")
-    r_server.set("incoming_data", "1")
     r_server.set("raw_data_ready", "0")
     r_server.set("pose_data_ready", "0")
+
+    # defining continuation flags
+    r_server.set("read_from_myo", "1")
+    r_server.set("buffer_maintained", "1")
+    r_server.set("incoming_data", "1")
 
     # defining shared buffer containers
     r_server.set("raw_data", "")
@@ -127,15 +130,19 @@ def collect_myo_data(conn_pool):
         print("Buffer maintenance thread aborted, failed to connect to myo")
         return 
 
-    # pulling data from the myo
     try :
-        while(True): myo_connection.run(1)
+        # pulling data from the myo
+        while(True and r_server.get("read_from_myo") == "1"): 
+            myo_connection.run(1)
+
     except :
-        myo_connection.disconnect()
+        #trying to disconnect the myo
+        try : myo_connection.disconnect()
+        except : pass
+        # telling parent processes that error occured
         r_server.set("incoming_data", "0")
-        print("Buffer maintenance thread aborted, error while reading from myo")
+        print("\nBuffer maintenance thread aborted, error while reading from myo")
         print("myo disconnected")
-        return
 
 
 
@@ -156,21 +163,27 @@ def maintain_pipeline_buffer(conn_pool, new_pipeline_buff_size=None):
     data_collection_p = Process(target=collect_myo_data, args=(conn_pool,))
     data_collection_p.start()
 
-    # as long as the program is receiving myo data
-    while(r_server.get("incoming_data") == "1"):
+    try:
 
-        # data is not currently available to parent process
-        # and child process cant write to raw data buffer
-        if(r_server.get("buffer_ready") == "0" and r_server.get("raw_data_ready") == "1"):
+        # as long as the program is receiving myo data
+        while(r_server.get("incoming_data") == "1"):
 
-            # transfering the raw data buffer content to the pipeline buffer
-            r_server.set("pipeline_buff", r_server.get("raw_data"))    
-            r_server.set("buffer_ready", "1")
-            
-             # marking the raw data buffer as read
-            r_server.set("raw_data", "")
-            r_server.set("raw_data_ready", "0")
-         
-    # marking the end of buffer maintenance
+            # data is not currently available to parent process
+            # and child process cant write to raw data buffer
+            if(r_server.get("buffer_ready") == "0" and r_server.get("raw_data_ready") == "1"):
+
+                # transfering the raw data buffer content to the pipeline buffer
+                r_server.set("pipeline_buff", r_server.get("raw_data"))    
+                r_server.set("buffer_ready", "1")
+                
+                # marking the raw data buffer as read
+                r_server.set("raw_data", "")
+                r_server.set("raw_data_ready", "0")
+
+    except: pass
+
+    # unsetting continuation flag for parent and child process
     r_server.set("buffer_maintained", "0")
+    r_server.set("read_from_myo", "0")
+
     data_collection_p.join()
