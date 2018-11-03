@@ -7,11 +7,6 @@ from time import sleep
 # importing myo communication utilities
 from myo_read_raw.pipeline_buffer import launch_myo_comm, reset_pipeline_buff_flags
 
-# importing threading utilities
-import redis
-from multiprocessing import Process
-from multiprocessing.managers import BaseManager
-
 # importing pose definitions
 from myo_read_raw.myo_raw import Pose
 
