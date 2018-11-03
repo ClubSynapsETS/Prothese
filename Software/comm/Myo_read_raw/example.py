@@ -5,8 +5,7 @@ import json
 from time import sleep
 
 # importing myo communication utilities
-from myo_read_raw.pipeline_buffer import maintain_pipeline_buffer, reset_pipeline_buff_flags
-from myo_read_raw.pipeline_buffer import init_redis_variables, redis_db_id
+from myo_read_raw.pipeline_buffer import launch_myo_comm, reset_pipeline_buff_flags
 
 # importing threading utilities
 import redis
@@ -16,24 +15,14 @@ from multiprocessing.managers import BaseManager
 # importing pose definitions
 from myo_read_raw.myo_raw import Pose
 
+# defining the size for the pipeline buffer
+pipeline_buffer_size = 25
+
+
 if __name__ == "__main__":
 
-    # creating redis connection pool (for multiple connected processes)
-    conn_pool = redis.ConnectionPool(host='localhost', port=6379, db=redis_db_id, decode_responses=True)
-
-    # creating redis connection 
-    r_server = redis.StrictRedis(connection_pool=conn_pool)
-    r_server = init_redis_variables(r_server)
-
-    # defining the size for the pipeline buffer
-    pipeline_buffer_size = 25
-
-    # launching the buffer maintenance as a subprocess
-    buffer_maintenance_p = Process(target=maintain_pipeline_buffer, args=(conn_pool, pipeline_buffer_size))
-    buffer_maintenance_p.start()
-
-    # waiting for confirmation that myo is connected (data  is received)
-    while(r_server.get("buffer_ready") != "1"): sleep(0.05)
+    # starting the buffer maintenance process
+    r_server, buffer_maintenance_p = launch_myo_comm(pipeline_buffer_size)
 
     try:
 

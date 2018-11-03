@@ -187,3 +187,30 @@ def maintain_pipeline_buffer(conn_pool, new_pipeline_buff_size=None):
     r_server.set("read_from_myo", "0")
 
     data_collection_p.join()
+
+
+
+# Launches the buffer maintenance process and returns the handle
+# Initializes redis server for inter-process communication 
+# Input : 
+#   "pipeline_buffer_size" : size of the buffer conataining myo data 
+# Returns : 
+#   Redis server connection instance
+#   Process handle for buffer maintenance process
+def launch_myo_comm(pipeline_buffer_size):
+
+     # creating redis connection pool (for multiple connected processes)
+    conn_pool = redis.ConnectionPool(host='localhost', port=6379, db=redis_db_id, decode_responses=True)
+
+    # creating redis connection 
+    r_server = redis.StrictRedis(connection_pool=conn_pool)
+    r_server = init_redis_variables(r_server)
+
+    # launching the buffer maintenance as a subprocess
+    buffer_maintenance_p = Process(target=maintain_pipeline_buffer, args=(conn_pool, pipeline_buffer_size))
+    buffer_maintenance_p.start()
+
+    # waiting for confirmation that myo is connected (data  is received)
+    while(r_server.get("buffer_ready") != "1"): sleep(0.05)
+
+    return r_server, buffer_maintenance_p
