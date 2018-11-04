@@ -1,33 +1,27 @@
-from __future__ import print_function
-
-
 import numpy as np
 import json, array
 
-# importing time utilities 
-from time import sleep
+from __future__ import print_function
 
-# importing threading utilities
-import redis
+# importing multi-process utilities
 from multiprocessing import Process
-from multiprocessing.managers import BaseManager
 
-# importing main loop and myo data handle from module myo read
+# importing myo communication utilities
 from myo_read_raw.pipeline_buffer import launch_myo_comm, reset_pipeline_buff_flags
-
-# importing pose definitions
-from myo_read_raw.myo_raw import Pose
 
 #import main loop from micro comm API
 from micro_comm.connect import launch_micro_comm
 
+# importing pose definitions
+from myo_read_raw.myo_raw import Pose
+
+# defining the size for the pipeline buffer
+pipeline_buffer_size = 25
+
 if __name__ == '__main__':
 
-    # defining the size for the pipeline buffer
-    pipeline_buffer_size = 25
-
-    microcomm_loop, microh = launch_micro_comm()
     #NOT A PROCESS, dbus mainloop object
+    microcomm_loop, microh = launch_micro_comm()
     microcomm_p = Process(target=microcomm_loop.run)
     microcomm_p.name = "micro_comm"
     microcomm_p.start()
@@ -37,8 +31,10 @@ if __name__ == '__main__':
     myocomm_p.name = "myo_raw"
     myocomm_p.start()
 
-    print("redis status: "+str(r_server.get("buffer_maintained")) + "comm loop="
-            +str(microcomm_loop.is_running()))
+    print("redis status: " + str(r_server.get("buffer_maintained")) + "comm loop="
+          + str(microcomm_loop.is_running()))
+    
+    
     while(r_server.get("buffer_maintained") == "1" and microcomm_loop.is_running()):
 
         # pipeline buffer is ready to be read
