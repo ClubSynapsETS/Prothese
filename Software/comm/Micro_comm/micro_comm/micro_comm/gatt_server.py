@@ -355,4 +355,6 @@ def gatt_server_main(mainloop, bus, adapter_name):
                                     error_handler=functools.partial(register_app_error_cb, mainloop))
     except:
         pass
+
     return data_handler
+
