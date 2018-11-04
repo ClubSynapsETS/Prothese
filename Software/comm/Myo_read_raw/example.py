@@ -1,9 +1,6 @@
 import numpy as np
 import json
 
-# importing time utilities 
-from time import sleep
-
 # importing myo communication utilities
 from myo_read_raw.pipeline_buffer import launch_myo_comm, reset_pipeline_buff_flags
 
@@ -41,5 +38,5 @@ if __name__ == "__main__":
         # unsetting continuation flag for the child process
         r_server.set("incoming_data", "0")
 
-    #waiting for the child process to end
+    # waiting for the child process to end
     buffer_maintenance_p.join()
