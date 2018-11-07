@@ -13,4 +13,4 @@
     
 # Installing the Dummy_preprocessing_pipeline package
     - Navigate to the "Dummy_preprocessing_pipeline" folder
-    - pip3 install -e Dummy_preprocessing_pipeline
+    - pip3 install --user -e Dummy_preprocessing_pipeline

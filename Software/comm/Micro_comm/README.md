@@ -7,6 +7,10 @@ A GATT server is usually a small device such as a sensor, but for some use cases
 ## Setup
 The instructions in this document were tested on Ubuntu 16.04.
 
+## myo_read_raw Installation
+This module requires myo_read_raw to be installed. View installation details :
+https://github.com/ClubSynapsETS/Prothese/tree/master/Software/comm/Myo_read_raw
+
 ### Bluez Installation
 On most distributions, you will need to upgrade Bluez in order to make this work.
 

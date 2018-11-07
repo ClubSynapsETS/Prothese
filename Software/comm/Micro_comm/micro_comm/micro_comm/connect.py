@@ -29,7 +29,5 @@ def launch_micro_comm():
     #Link to shared memory space in bluetooth handler
     data_handler = gatt_server.gatt_server_main(gatts_loop, bus, adapter_name)
 
-    gatts_loop.run()
-
     return (gatts_loop, data_handler)
 

@@ -310,17 +310,17 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             case 0: //do nothing
                 break;
             //Fist
-            case 1: gpio_set_level(GPIO_OUTPUT_IO_0, 0); break;
+            case 1: gpio_set_level(GPIO_OUTPUT_IO_1, 0);
+                    gpio_set_level(GPIO_OUTPUT_IO_0, 1);
+                    break;
             //finger spread
-            case 4: gpio_set_level(GPIO_OUTPUT_IO_0, 1); break;
-            //wave in
-            case 2: gpio_set_level(GPIO_OUTPUT_IO_1, 0); break;
-            //wave out
-            case 3: gpio_set_level(GPIO_OUTPUT_IO_1, 1); break;
-            default: break;
+            case 4: gpio_set_level(GPIO_OUTPUT_IO_1, 1);
+                    gpio_set_level(GPIO_OUTPUT_IO_0, 0);
+                    break;
+            default:
+                    break;
 
         }
-        //store value here!
         break;
     case ESP_GATTC_WRITE_DESCR_EVT:
         if (p_data->write.status != ESP_GATT_OK){
@@ -537,6 +537,8 @@ void bt_app_launch()
         return;
     }
 
+    gpio_pin_config();
+
     //register the  callback function to the gap module
     ret = esp_ble_gap_register_callback(esp_gap_cb);
     if (ret){
@@ -560,6 +562,5 @@ void bt_app_launch()
         ESP_LOGE(GATTC_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
-    gpio_pin_config();
 }
 
