@@ -1,7 +1,7 @@
+from __future__ import print_function
+
 import numpy as np
 import json, array
-
-from __future__ import print_function
 
 # importing multi-process utilities
 from multiprocessing import Process
