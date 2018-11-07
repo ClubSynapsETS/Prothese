@@ -37,6 +37,7 @@
 #include "driver/gpio.h"
 
 #include "ble_service_details.h"
+#include "ble_app.h"
 
 #define GATTC_TAG "GATTC_DEMO"
 #define PROFILE_NUM      1
@@ -54,11 +55,7 @@ static bool get_server = false;
 static esp_gattc_char_elem_t *char_elem_result   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result = NULL;
 
-/* eclare static functions */
-static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
-static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param);
 static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param);
-
 
 static esp_bt_uuid_t remote_filter_service_uuid = {
     .len = ESP_UUID_LEN_128,
@@ -84,17 +81,6 @@ static esp_ble_scan_params_t ble_scan_params = {
     .scan_interval          = 0x50,
     .scan_window            = 0x30,
     .scan_duplicate         = BLE_SCAN_DUPLICATE_DISABLE
-};
-
-struct gattc_profile_inst {
-    esp_gattc_cb_t gattc_cb;
-    uint16_t gattc_if;
-    uint16_t app_id;
-    uint16_t conn_id;
-    uint16_t service_start_handle;
-    uint16_t service_end_handle;
-    uint16_t char_handle;
-    esp_bd_addr_t remote_bda;
 };
 
 /* One gatt-based profile one app_id and one gattc_if, this array will store the gattc_if returned by ESP_GATTS_REG_EVT */
@@ -355,6 +341,13 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         }
         ESP_LOGI(GATTC_TAG, "write char success ");
         break;
+    case ESP_GATTC_READ_CHAR_EVT:
+        if(p_data->read.status != ESP_GATT_OK){
+            ESP_LOGE(GATTC_TAG, "read char failed, error status = %x", p_data->write.status);
+            break;
+        }
+        ESP_LOGI(GATTC_TAG, "read char success, value = %x", *p_data->read.value);
+        break;
     case ESP_GATTC_DISCONNECT_EVT:
         connect = false;
         get_server = false;
@@ -478,8 +471,7 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 
 
 /*TEMP GPIO pin config*/
-void gpio_pin_config();
-void gpio_pin_config()
+static void gpio_pin_config()
 {
 
     gpio_config_t io_conf;
@@ -490,9 +482,6 @@ void gpio_pin_config()
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
 }
-
-
-void bt_app_launch();
 
 void bt_app_launch()
 {
@@ -537,6 +526,8 @@ void bt_app_launch()
         return;
     }
 
+    gpio_pin_config();
+
     //register the  callback function to the gap module
     ret = esp_ble_gap_register_callback(esp_gap_cb);
     if (ret){
@@ -560,6 +551,5 @@ void bt_app_launch()
         ESP_LOGE(GATTC_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
-    gpio_pin_config();
 }
 

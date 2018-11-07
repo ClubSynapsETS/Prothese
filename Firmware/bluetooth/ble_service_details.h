@@ -54,29 +54,3 @@
     0x7f, 0x97, 0xa0, 0x69           \
 }
 
-typedef enum 
-{
-    MouvementChrc       = 0x0001,
-    ModeChrc            = 0x0002,
-    LogsChrc            = 0x0003
-};
-
-// Defined prosthesis mouvements.
-enum prot_mv 
-{
-    MV_WRIST_FLEXION,
-    MV_WRIST_EXTENSION,
-    MV_TRIPODAL_GRASPING,
-    MV_SPHERICAL_GRASPING,
-    MV_CYLINDRICAL_GRAPSING,
-    MV_KEY_GRASPING,
-    MV_HAND_OPEN,
-    MV_HAND_CLOSE,
-    MV_RESTING
-};
-
-
-
-
-static int compare_array(uint8_t *uuidref, uint8_t *uuidcmp, int size);
-void bt_app_launch();
