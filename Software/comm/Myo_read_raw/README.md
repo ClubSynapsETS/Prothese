@@ -17,4 +17,4 @@
     - Copy the "myo_read_raw" folder next to the "exemple.py" file
     - Paste the folder in the wanted location (ex : Downloaded modules folder) 
     - From the command line, navigate to the pasted folder
-    - pip3 install -e myo_read_raw
+    - pip3 install --user -e myo_read_raw
