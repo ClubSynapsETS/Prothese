@@ -34,10 +34,14 @@
  *   }
  */
 
-//Static?
 #define ZACKB_BDA   { \
     0x00, 0x1A, 0x7D, \
     0xDA, 0x71, 0x13  \
+}
+
+#define DAVID_BDA   { \
+    0x30, 0x3A, 0x64, \
+    0x5E, 0x86, 0xD3  \
 }
 
 #define MYO_MOUVEMENT_SERVICE_UUID { \

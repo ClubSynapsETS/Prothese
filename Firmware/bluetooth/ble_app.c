@@ -379,7 +379,8 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 
         break;
     case ESP_GAP_BLE_SCAN_RESULT_EVT: {
-        uint8_t dongle_bda[6] = ZACKB_BDA;
+        uint8_t z_dongle_bda[6] = ZACKB_BDA;
+        uint8_t d_dongle_bda[6] = DAVID_BDA;
         esp_ble_gap_cb_param_t *scan_result = (esp_ble_gap_cb_param_t *)param;
         switch (scan_result->scan_rst.search_evt) {
         case ESP_GAP_SEARCH_INQ_RES_EVT:
@@ -391,7 +392,8 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             esp_log_buffer_char(GATTC_TAG, adv_name, adv_name_len);
             ESP_LOGI(GATTC_TAG, "\n");
 
-            if (compare_array(scan_result->scan_rst.bda, dongle_bda, 6)) {
+            if (compare_array(scan_result->scan_rst.bda, z_dongle_bda, 6) ||
+                 compare_array(scan_result->scan_rst.bda, d_dongle_bda, 6)   ) {
                 /*if (strlen(remote_device_name) == adv_name_len && strncmp((char *)adv_name, remote_device_name, adv_name_len) == 0) {*/
                 /*ESP_LOGI(GATTC_TAG, "searched device %s\n", remote_device_name);*/
                 if (connect == false) {
