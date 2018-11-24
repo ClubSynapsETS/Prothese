@@ -1,6 +1,7 @@
 /*
    This example code is in the Public Domain (or CC0 licensed, at your option.)
 
+
    Unless required by applicable law or agreed to in writing, this
    software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
    CONDITIONS OF ANY KIND, either express or implied.
@@ -43,11 +44,6 @@
 #define PROFILE_NUM      1
 #define PROFILE_A_APP_ID 0
 #define INVALID_HANDLE   0
-
-#define GPIO_OUTPUT_IO_0    18
-#define GPIO_OUTPUT_IO_1    19
-#define GPIO_OUTPUT_PIN_SEL  ((1ULL<<GPIO_OUTPUT_IO_0) | (1ULL<<GPIO_OUTPUT_IO_1))
-#define ESP_INTR_FLAG_DEFAULT 0
 
 static const char remote_device_name[] = "zackB";
 static bool connect    = false;
@@ -290,22 +286,6 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, receive indicate value:");
         }
         esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
-        switch (p_data->notify.value[1])
-        {
-            //resting
-            case 0: //do nothing
-                break;
-            //Fist
-            case 1: gpio_set_level(GPIO_OUTPUT_IO_0, 0); break;
-            //finger spread
-            case 4: gpio_set_level(GPIO_OUTPUT_IO_0, 1); break;
-            //wave in
-            case 2: gpio_set_level(GPIO_OUTPUT_IO_1, 0); break;
-            //wave out
-            case 3: gpio_set_level(GPIO_OUTPUT_IO_1, 1); break;
-            default: break;
-
-        }
         //store value here!
         break;
     case ESP_GATTC_WRITE_DESCR_EVT:
@@ -473,18 +453,6 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 
 
 /*TEMP GPIO pin config*/
-static void gpio_pin_config()
-{
-
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
-    io_conf.pull_down_en = 0;
-    io_conf.pull_up_en = 0;
-    gpio_config(&io_conf);
-}
-
 void bt_app_launch()
 {
     // Initialize NVS.
@@ -528,7 +496,6 @@ void bt_app_launch()
         return;
     }
 
-    gpio_pin_config();
 
     //register the  callback function to the gap module
     ret = esp_ble_gap_register_callback(esp_gap_cb);
