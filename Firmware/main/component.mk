@@ -1,4 +1,6 @@
-COMPONENT_SRCDIRS := . \
-	../bluetooth
 COMPONENT_ADD_INCLUDEDIRS := \
-	../bluetooth
+	../bluetooth \
+	../Motion_control
+COMPONENT_SRCDIRS := . \
+	../bluetooth \
+	../Motion_control
