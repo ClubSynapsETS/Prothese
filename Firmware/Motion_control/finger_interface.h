@@ -19,7 +19,7 @@ typedef enum
 {
     FG_CLOSED, // Voltage to position ~ min position
     FG_CLOSING, // Voltage going toward max ( check sign of calculated slope(+))
-    FG_STUCK,// Position not min nor max and slope ~ 0 // difficult to determin?
+    FG_INVALID,// Position not min nor max and slope ~ 0 // difficult to determin?
     FG_SET_POS, // SAme as Stuck but the controller set this positoon
     FG_OPENING, // Voltage going toward min ( slope sign (-))
     FG_OPENED, // Voltage to position ~ max positio
@@ -73,7 +73,7 @@ void vFingerInterface( void * pvParam );
 /**************************************************************************/
     
 /*configure pins*/
-//static void config_actuator_channel(finger_charc_t fg);
+//static void config_actuator_channel(finger_charc_t * fg);
 
 /**
  * @brief Get voltage outputed by the actuator refering to it's position.
@@ -105,7 +105,7 @@ void vFingerInterface( void * pvParam );
  *
  * @return Action/Inaction: 0 if no action will be taken, 1 if a pulsse must be sent to conform to instruction.
  */
-//static int finger_mouvement_planing(finger_charc_t fg, double toplvl_instruct);
+//static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct);
 
 /**
  * @brief Simple callback after a delay in microseconds, used to set GPIO level of actuator to low.
@@ -125,4 +125,4 @@ void vFingerInterface( void * pvParam );
  *
  * @return None
  */
-//static void finger_control_iface(finger_charc_t fg);
+//static void finger_control_iface(finger_charc_t * fg);
