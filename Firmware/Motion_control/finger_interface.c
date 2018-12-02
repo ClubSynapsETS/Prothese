@@ -52,21 +52,21 @@ static finger_charc_t xfingerCharac[4] =
     { .finger_id=index0, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
         .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_0, 
         .lower_gpio=GPIO_NUM_32, .upper_gpio=GPIO_NUM_33,
-        .max_position=18.73, .min_position=5.56, .time_stamp=0,
+        .max_position=18.83, .min_position=5.46, .time_stamp=0 
         .stroke_num=0
     },
     //Majeur
     { .finger_id=majeur1, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
         .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_3, 
         .lower_gpio=GPIO_NUM_25, .upper_gpio=GPIO_NUM_26,
-        .max_position=18.73, .min_position=5.56, .time_stamp=0,  
+        .max_position=18.83, .min_position=5.46, .time_stamp=0 
         .stroke_num=0
     }, 
     //Anulaire
     { .finger_id=anulaire2, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
         .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_6, 
         .lower_gpio=GPIO_NUM_14, .upper_gpio=GPIO_NUM_27,
-        .max_position=16.243, .min_position=2.973, .time_stamp=0,
+        .max_position=16.343, .min_position=2.873, .time_stamp=0 
         .stroke_num=0
     }, 
     //Auricualire
@@ -74,7 +74,7 @@ static finger_charc_t xfingerCharac[4] =
         .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_7, 
         .lower_gpio=GPIO_NUM_12, .upper_gpio=GPIO_NUM_13,
         //hardcoded max and min position
-        .max_position=19.18, .min_position=4.904, .time_stamp=0,
+        .max_position=19.28, .min_position=4.804, .time_stamp=0 
         .stroke_num=0
     } 
 };
@@ -127,6 +127,8 @@ void vFingerInterface( void * pvParam )
         //block until message from top level controller
         /*xQueueReceive( xFromTopLevelQueue, &instructions, 0 );*/
 
+        // vTaskDelay(pdMS_TO_TICKS(2000));
+
         //for now instructions is just an arrray of 4 doubles
         double * toplvl_instruct = (double*)instructions;
 
@@ -134,9 +136,9 @@ void vFingerInterface( void * pvParam )
         for(each_fg=0; each_fg<=3; each_fg++) {
             //space between each task
             ESP_LOGI(ACT_TASK, "");
+
             xfingerCharac[each_fg].state = actuator_state( &xfingerCharac[each_fg] );
             //TODO: Catch weird state
-            //
 
             //if an action is required...
             if(finger_movement_planing( &xfingerCharac[each_fg], toplvl_instruct[each_fg] ) == 1 ){
@@ -228,9 +230,10 @@ static fg_state_e actuator_state(finger_charc_t * fg)
     int num_sample, calc;
     //Get samples and timestamps, convert them from mV to mm
     for(num_sample=0; num_sample<3; ++num_sample) {
+        cur_position=0;
         timestamp[num_sample] = esp_timer_get_time();
         mVolt = Actuator_Pos_volt(fg->adc_channel);
-        
+
         if(mVolt == DISCONNECTED_VOLTAGE){
             ESP_LOGE(ACT_TASK, "Actuator number %d is diconnected", (int)fg->finger_id);
             return FG_WEIRD;
@@ -240,6 +243,7 @@ static fg_state_e actuator_state(finger_charc_t * fg)
         if(cur_position < 0) cur_position =0;
         positions[num_sample] = cur_position;
 
+        positions[num_sample] = cur_position;
     }
     fg->cur_position = positions[2];
     ESP_LOGI(ACT_TASK, "finger%d", (int)fg->finger_id);
@@ -254,6 +258,7 @@ static fg_state_e actuator_state(finger_charc_t * fg)
         total_speed += speeds[calc];
     }
     total_speed /= calc; //speed in mm/ms
+    total_speed *= 10; //convert mm/ms -> mm/s
     ESP_LOGI(ACT_TASK, "Speed = %f", total_speed);
 
     ////State guesing logic
@@ -261,7 +266,7 @@ static fg_state_e actuator_state(finger_charc_t * fg)
     //we're definatly moving
     if((total_speed > 4 || total_speed < -4) && //speeds in mm/s
           (total_speed < 29 || total_speed > -29)  ) {
-        if(total_speed >0) return FG_OPENING; 
+        if(total_speed >0) return FG_OPENING;
         if(total_speed <0) return FG_CLOSING;
         ESP_LOGI(ACT_TASK, "efinger%d is moving at ludicris speed %f.", (int)fg->finger_id, total_speed );
     }
@@ -269,15 +274,20 @@ static fg_state_e actuator_state(finger_charc_t * fg)
     else if(total_speed <= 4 || total_speed >= -4){
         ESP_LOGI(ACT_TASK, "Finger%d is not moving.", (int)fg->finger_id );
         ///set an interval.
-        if(fg->cur_position >= (fg->max_position - 0.2)) return FG_OPENED;
-        if(fg->cur_position <= (fg->min_position + 0.2)) return FG_CLOSED;
+        if(fg->cur_position >= (fg->max_position - 0.2) 
+               && fg->cur_position <= (fg->max_position + 0.1)){
+            return FG_OPENED;
+        }
+        if(fg->cur_position <= (fg->min_position + 0.2) 
+               && fg->cur_position >= (fg->min_position - 0.1)) {
+            return FG_CLOSED;
+        }
         if(fg->cur_position > (fg->last_set_pos - 0.1) 
-                && fg->cur_position < (fg->last_set_pos + 0.1)) {
+               && fg->cur_position < (fg->last_set_pos + 0.1)) {
             return FG_SET_POS;
         }
         
-        //were not moving and were not at any valid position, we are in the wrong place. we cannot assume anything more.
-        //Or we landed at the wrong position, seems more likely
+        //were not moving and were not at any valid position, nothing special to do.
         else {
             ESP_LOGW(ACT_TASK, "invalid position of actuator = %f", total_speed );
             return FG_INVALID;
@@ -339,7 +349,7 @@ static int finger_movement_planing(finger_charc_t * fg, double toplvl_instruct)
        //this needs to be smarter.
        if(fg->state == FG_OPENING)
            fg->act->set_time = time_to_target * 1.2;
-       else 
+       else
            fg->act->set_time = time_to_target;
    }
    //finger will open
@@ -353,8 +363,14 @@ static int finger_movement_planing(finger_charc_t * fg, double toplvl_instruct)
            fg->act->set_time = time_to_target * 1.2;
        else
            fg->act->set_time = time_to_target;
-
    }
+   char * dir; 
+   if(fg->act->direction == DIR_EXTEND)
+       dir = "Extend";
+   else
+       dir = "Contract";
+   ESP_LOGI(ACT_TASK, "pusle width = %d, direction = %s", time_to_target, dir);
+
 
    //remember for next iteration
    fg->last_set_pos = target_position;

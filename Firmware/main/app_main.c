@@ -28,13 +28,14 @@ void test_fg_iface(void)
 
     xQueueSend(fgIfaceQueue, (void*)instruct, (TickType_t)0);
     
-    vTaskDelay(pdMS_TO_TICKS(50));
+    vTaskDelay(pdMS_TO_TICKS(50000));
     instruct[0] = 0.0;
     instruct[0] = 1.0;
     instruct[0] = 0.7;
     instruct[3] = 0.3;
 
 
+    xQueueSend(fgIfaceQueue, (void*)instruct, (TickType_t)0);
 
 }
 
@@ -49,9 +50,12 @@ void app_main()
         ESP_LOGE(MAIN_TASK, "Unable to create fg iface queue, suspending...");
 
     xTaskCreate( vFingerInterface, "Finger IFace", 8056, &fgIfaceQueue, TASK_FINGER_IFACE_PRIORITY, NULL);
+
+    ESP_LOGI(MAIN_TASK, "Entering the app_main main loop.");
     
     for(;;)
     { 
+        test_fg_iface();
 
         vTaskDelay(pdMS_TO_TICKS(1000));
 

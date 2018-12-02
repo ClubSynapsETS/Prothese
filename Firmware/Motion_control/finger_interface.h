@@ -74,7 +74,7 @@ void vFingerInterface( void * pvParam );
 /**************************************************************************/
     
 /*configure pins*/
-//static void config_actuator_channel(finger_charc_t fg);
+//static void config_actuator_channel(finger_charc_t * fg);
 
 /**
  * @brief Get voltage outputed by the actuator refering to it's position.
@@ -126,4 +126,4 @@ void vFingerInterface( void * pvParam );
  *
  * @return None
  */
-//static void finger_control_iface(finger_charc_t fg);
+//static void finger_control_iface(finger_charc_t * fg);
