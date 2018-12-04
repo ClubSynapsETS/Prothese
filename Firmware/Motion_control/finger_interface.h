@@ -82,6 +82,7 @@ typedef struct
     fg_state_e state;
     double cur_position;
     double last_set_pos;
+    uint32_t stroke_num;
 
     actuator_instruct_t * act;
     //finger specfic hardware interface
