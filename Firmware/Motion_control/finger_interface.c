@@ -1,42 +1,10 @@
 #include "finger_interface.h"
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/timers.h"
-
-#include "driver/gpio.h"
-#include "driver/adc.h"
-
-#include "esp_adc_cal.h"
-#include "esp_timer.h"
-#include "esp_log.h"
-
-
-#include <stdint.h>
-#include <string.h>
-
-//Adc calibration
-#define DEFAULT_VREF 1100
-
-#define INSTRUCT_FG_OPEN  1.0
-#define INSTRUCT_FG_CLOSE 0.0
-
-#define DIR_EXTEND  1
-#define DIR_CONTRACT 2
-#define DIR_NONE     0
-
+// shared data structure for BT
+extern volatile bt_shared_data_t bt_shared_buffer;
 
 static const char* ACT_TASK = "ACTUATOR IFACE";
 static esp_adc_cal_characteristics_t *adc_chars;
-
-
-static void config_actuator_channel(finger_charc_t * fg);
-static uint32_t Actuator_Pos_volt(adc1_channel_t channel);
-static fg_state_e actuator_state(finger_charc_t * fg);
-static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct);
-static void actuator_timer_callback(void* arg);
-static void finger_control_iface(finger_charc_t * fg);
 
 static actuator_instruct_t pq12_charact = 
 {
@@ -75,27 +43,17 @@ static finger_charc_t xfingerCharac[4] =
 };
 
 
-
-
 /*Module main finger interface*/
 void vFingerInterface( void * pvParam )
 {
-    QueueHandle_t xFromTopLevelQueue;
-    double instructions[4] = { 0.5, 1.0, 0.5, 0.5 };
-    int each_fg;
-
-    //receive queue handle from top level.
-    xFromTopLevelQueue = (QueueHandle_t)pvParam;
-    if(xFromTopLevelQueue == NULL){
-        ESP_LOGE(ACT_TASK, "Suspending this task because of queue null pointer");
-        vTaskSuspend(NULL);
-    }
-
-    //Calibrate ADC1
+    double instruction[4] = {0};
+  
+    // calibrating the ADC1
     adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
     esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, DEFAULT_VREF, adc_chars);
     adc1_config_width(ADC_WIDTH_BIT_12);
 
+    int each_fg;
     for(each_fg=0; each_fg<=3; each_fg++) {
 
         //Configure ESP32 outputs
@@ -118,28 +76,29 @@ void vFingerInterface( void * pvParam )
     for(;;)
     {
         
-        //block until message from top level controller
-        /*xQueueReceive( xFromTopLevelQueue, &instructions, 0 );*/
+        // logging task activity
+        ESP_LOGI(ACT_TASK,"");
 
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        if(bt_shared_buffer.data_read == 0){
 
-        //for now instructions is just an arrray of 4 doubles
-        double * toplvl_instruct = (double*)instructions;
+            // converting the received myo pose to instructions
+            pose_to_finger_instructs(instruction, N_FINGERS, bt_shared_buffer.myo_pose);
+            bt_shared_buffer.data_read = 1;
 
-        //Main interfacen, get state, compare to instructions, act upon a difference between the two of them. 
-        for(each_fg=0; each_fg<=3; each_fg++) {
-            ESP_LOGI(ACT_TASK,"");
-            xfingerCharac[each_fg].state = actuator_state( &xfingerCharac[each_fg] );
+            //Main interfacen, get state, compare to instructions, act upon a difference between the two of them. 
+            for(each_fg=0; each_fg<=3; each_fg++) {
 
-            //if an action is required...
-            if(finger_mouvement_planing( &xfingerCharac[each_fg], toplvl_instruct[each_fg] ) == 1 ){
-                finger_control_iface(&xfingerCharac[each_fg]);
+                xfingerCharac[each_fg].state = actuator_state( &xfingerCharac[each_fg]);
+
+                //if an action is required...
+                if(finger_mouvement_planing( &xfingerCharac[each_fg], instruction[each_fg] ) == 1 ){
+                    finger_control_iface(&xfingerCharac[each_fg]);
+                }
+                
             }
-            //otherwise do nothing.
-
         }
 
-         //TODO: Stalling callback
+        //TODO: Stalling callback
         /* E) Staling detection task to ISR
          * To save processing time, adc reads will not happen when the finger is either closed or opened.
          * This task will remember the last two value and compare it to the most recent one
@@ -158,14 +117,50 @@ void vFingerInterface( void * pvParam )
          *  2. Change interface finger state.
          */
 
+        vTaskDelay(pdMS_TO_TICKS(200));
+
     }
 
-    //This should never happen involuntarily.
+    // deleting the current task
+    // this should not happen
     vTaskDelete(NULL);
 }
 
-//Configures the hardware/pins for a specdified actuator.
-static void config_actuator_channel(finger_charc_t * fg)
+
+// converts pose data from the myo to instructions for the fingers
+// the provided array gets updated with the instructions corresponding to "pose"
+// Instructions :
+//    - array where each member = the contraction (percentage) for a finger
+//    - instruction[0]=Index instruction[1]=Majeur, instruction[2]=Anulaire, instruction[3]=Auricualire
+void pose_to_finger_instructs(double* instruction, int len, int pose){
+
+    double instruction_val = 0;
+    int iter;
+
+    switch(pose){
+        case FIST:
+            instruction_val = INSTRUCT_FG_CLOSE;
+            ESP_LOGI(ACT_TASK, "Received : FIST Pose"); 
+        break;
+        case FINGERS_SPREAD:
+            instruction_val = INSTRUCT_FG_OPEN; 
+            ESP_LOGI(ACT_TASK, "Received : FINGERS_SPREAD Pose"); 
+        break; 
+        case REST:
+            instruction_val = INSTRUCT_FG_OPEN;
+            ESP_LOGI(ACT_TASK, "Received : REST Pose"); 
+        break;
+    }
+
+    for(iter=0; iter<len; iter++) {
+        instruction[iter] = instruction_val;
+    }
+
+}
+
+
+// Configures the hardware/pins for a specdified actuator.
+void config_actuator_channel(finger_charc_t * fg)
 {
     //Configure ADC
     adc1_config_channel_atten(fg->adc_channel, ADC_ATTEN_DB_11);
@@ -184,8 +179,9 @@ static void config_actuator_channel(finger_charc_t * fg)
     gpio_set_level(fg->lower_gpio, 0);
 }
 
-//Sensor
-static uint32_t Actuator_Pos_volt(adc1_channel_t channel)
+
+// returns averaged adc value for the specified chanel 
+uint32_t Actuator_Pos_volt(adc1_channel_t channel)
 {
     //TODO: optimise this subroutine, is currently take 1300us
     const uint8_t no_samples = 32;
@@ -204,18 +200,17 @@ static uint32_t Actuator_Pos_volt(adc1_channel_t channel)
 }
 
 
-static fg_state_e actuator_state(finger_charc_t * fg)
+fg_state_e actuator_state(finger_charc_t * fg)
 {
     const double mVtomm_slope = -0.006255481443114;
     uint64_t timestamp[3];
-    double delta_t;
-
+    double delta_time;
     double positions[3], cur_position=0, delta_x;
     double total_speed=0, speeds[2];
     uint32_t mVolt;
     
-    int num_sample, calc;
     //Get samples and timestamps, convert them from mV to mm
+    int num_sample, calc;
     for(num_sample=0; num_sample<3; ++num_sample) {
         cur_position=0;
         timestamp[num_sample] = esp_timer_get_time();
@@ -234,10 +229,10 @@ static fg_state_e actuator_state(finger_charc_t * fg)
 
     //Calculate speeds
     for(calc=0; calc<2; ++calc) {
-        delta_t = (double)(timestamp[calc+1] - timestamp[calc]);
-        delta_t /= 1000; //Convert us to ms
+        delta_time = (double)(timestamp[calc+1] - timestamp[calc]);
+        delta_time /= 1000; //Convert us to ms
         delta_x = positions[calc+1] - positions[calc];
-        speeds[calc] = delta_x/delta_t;
+        speeds[calc] = delta_x/delta_time;
         total_speed += speeds[calc];
     }
     total_speed /= calc; //speed in mm/ms
@@ -253,19 +248,24 @@ static fg_state_e actuator_state(finger_charc_t * fg)
         if(total_speed <0) return FG_CLOSING;
         ESP_LOGI(ACT_TASK, "efinger%d is moving at ludicris speed %f.", (int)fg->finger_id, total_speed );
     }
+
     //We've almost completly stopped moving
-    else if(total_speed < 2 || total_speed > -2){
+    else if(total_speed < 4 && total_speed > -4){
+
         ESP_LOGI(ACT_TASK, "efinger%d is not moving.", (int)fg->finger_id );
-        ///set an interval.
+        
+        // actuator is stoped at an extremity
         if(fg->cur_position >= (fg->max_position - 0.2) 
                && fg->cur_position <= (fg->max_position + 0.1)){
             return FG_OPENED;
         }
-        if(fg->cur_position <= (fg->min_position + 0.2) 
-               && fg->cur_position >= (fg->max_position - 0.1)) {
+        else if(fg->cur_position <= (fg->min_position + 0.2) 
+               && fg->cur_position >= (fg->min_position - 0.1)) {
             return FG_CLOSED;
         }
-        if(fg->cur_position > (fg->last_set_pos - 0.1) 
+
+        // actuator is stoped in valid range
+        else if(fg->cur_position > (fg->last_set_pos - 0.1) 
                && fg->cur_position < (fg->last_set_pos + 0.1)) {
             return FG_SET_POS;
         }
@@ -273,24 +273,26 @@ static fg_state_e actuator_state(finger_charc_t * fg)
         //were not moving and were not at any valid position, nothing special to do.
         else {
             ESP_LOGW(ACT_TASK, "Wrong Position of actuator = %f", total_speed );
-            //invalid postion
             return FG_INVALID;
         }
+
         //add overshoot detection logic and correction here
     }
+
     //Not going at any valid speed, something must be slowing the finger down.
     else {
-
         ESP_LOGE(ACT_TASK, "Finger%d's sensors have picked up something weird!", (int)fg->finger_id );
         ESP_LOGE(ACT_TASK, "Speed of actuator = %f", total_speed );
         return FG_WEIRD;
     }
 
     return FG_WEIRD;
+
 }
 
+
 //modeling module
-static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
+int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
 {
     double delta_x;
     uint32_t time_to_target;
@@ -299,6 +301,7 @@ static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
    fg->act->set_speed = fg->act->max_speed;
    fg->act->set_time = 0;
    fg->act->direction = DIR_NONE;
+   
    //Instruction is to set to max position but the finger is already there.
    if(INSTRUCT_FG_OPEN == toplvl_instruct && fg->state == FG_OPENED)
        return 0;
@@ -307,9 +310,10 @@ static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
    if(INSTRUCT_FG_CLOSE == toplvl_instruct && fg->state == FG_CLOSED)
        return 0;
 
-   //Instruction is to set to a set position but the finger is already there.
    //convert instruction to an actual position
    double target_position = fg->min_position +((fg->max_position - fg->min_position)*toplvl_instruct);
+   
+   //Instruction is to set to a set position but the finger is already there.
    //very close to target position 
    if(fg->cur_position >= target_position-0.1 && fg->cur_position <= target_position+0.1
            && fg->state == FG_SET_POS) {
@@ -317,7 +321,7 @@ static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
    }
 
    delta_x = target_position - fg->cur_position;
-   ESP_LOGI(ACT_TASK, "MOUVING TO POSITION %f from %f", target_position, fg->cur_position);
+   ESP_LOGI(ACT_TASK, "MOVING TO POSITION %f from %f", target_position, fg->cur_position);
 
    //Insert speed modulation here. 
    //Top level instruction will have a force and timing add to it, that will be used to calculate the speed.
@@ -348,6 +352,8 @@ static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
        else
            fg->act->set_time = time_to_target;
    }
+   
+   // logging new movement direction
    char * dir; 
    if(fg->act->direction == DIR_EXTEND)
        dir = "Extend";
@@ -365,17 +371,17 @@ static int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct)
 
 
 //timer callback, so that we can forget the pulse until needed again.
-static void actuator_timer_callback(void* arg)
+void actuator_timer_callback(void* arg)
 {
     finger_charc_t * fg = (finger_charc_t*)arg;
 
     gpio_set_level(fg->lower_gpio, 0);
     gpio_set_level(fg->upper_gpio, 0);
-
 }
 
+
 //control module
-static void finger_control_iface(finger_charc_t * fg)
+void finger_control_iface(finger_charc_t * fg)
 {
     /* index    io  32 and 33
      * Majeur   io  25 and 26

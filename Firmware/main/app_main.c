@@ -1,27 +1,12 @@
-/*#include "../bluetooth/ble_app.h"*/
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/timers.h"
+#include "app_main.h"
 
-#include "../bluetooth/ble_app.h"
-#include "../Motion_control/finger_interface.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include "driver/gpio.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
-#include "esp_log.h"
-
-
-#define TASK_FINGER_IFACE_PRIORITY  4
-
+/*
 QueueHandle_t fgIfaceQueue;
-
 static const char * MAIN_TASK = "MAIN_CTRLER";
+*/
 
 //Test finger interface function
+/*
 void test_fg_iface(void)
 {
     double instruct[4] = { 0.5, 0.5, 0.5, 0.5 };
@@ -38,12 +23,14 @@ void test_fg_iface(void)
     xQueueSend(fgIfaceQueue, (void*)instruct, (TickType_t)0);
 
 }
+*/
 
-
-void app_main()
+// Old entry point
+/*void app_main()
 {
     BaseType_t xStatus;
-    /*bt_app_launch();*/
+    
+    bt_app_launch();
 
     fgIfaceQueue = xQueueCreate(4, sizeof(double) );
     if(fgIfaceQueue == NULL)
@@ -61,3 +48,24 @@ void app_main()
 
     }
 }
+*/
+
+
+// creating a global shared structure for incoming instructions
+volatile bt_shared_data_t bt_shared_buffer = {.myo_pose = 0, .data_read=1, 
+                                              .finger_iface_task_name = "Finger_Interface",
+                                              .finger_iface_handle = NULL,
+                                              .tast_created=0}; 
+
+
+void app_main(){
+
+    // lauching the BT client
+    bt_app_launch();
+
+    for(;;){ 
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+
+}
+

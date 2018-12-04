@@ -124,7 +124,6 @@ void vActuatorData( void * pvParam )
         calculate_pulse_width *= 1000000; //converte to us
         uint32_t pulse_width = (uint32_t)calculate_pulse_width;
 
-
         //Go to initial position
         ESP_LOGI(TEST_TAG, "Extending, pulse width = %d", pulse_width);
         gpio_set_level(26, HIGH);

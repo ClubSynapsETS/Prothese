@@ -16,33 +16,10 @@
 *
 ****************************************************************************/
 
-#include <stdint.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include "nvs.h"
-#include "nvs_flash.h"
-
-#include "esp_bt.h"
-#include "esp_bt_device.h"
-#include "esp_gap_ble_api.h"
-#include "esp_gattc_api.h"
-#include "esp_gatt_defs.h"
-#include "esp_bt_main.h"
-#include "esp_gatt_common_api.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-
-#include "freertos/queue.h"
-#include "driver/gpio.h"
-
-#include "ble_service_details.h"
 #include "ble_app.h"
 
-#define GATTC_TAG "GATTC_DEMO"
-#define PROFILE_NUM      1
-#define PROFILE_A_APP_ID 0
-#define INVALID_HANDLE   0
+// shared data structure for BT 
+extern volatile bt_shared_data_t bt_shared_buffer;
 
 // defining connection flags
 static bool connect    = false;
@@ -52,7 +29,6 @@ static esp_gattc_char_elem_t *char_elem_result   = NULL;
 static esp_gattc_descr_elem_t *descr_elem_result = NULL;
 
 static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param);
-
 
 // defining the UUID of the service we want to connect to server side
 static esp_bt_uuid_t remote_filter_service_uuid = {
@@ -108,7 +84,6 @@ static int compare_array(uint8_t *uuidref, uint8_t *uuidcmp, int size)
     }
     return 1;
 }
-
 
 
 // defining the GATT event handler for the one (id = 0) application profile
@@ -324,14 +299,32 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         }
 
         // event triggered when notification is received from target characteristic
-        case ESP_GATTC_NOTIFY_EVT:
+        case ESP_GATTC_NOTIFY_EVT:{
+
+            // logging received notification from server
             if (p_data->notify.is_notify){
                 ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, receive notify value:");
             }else{
                 ESP_LOGI(GATTC_TAG, "ESP_GATTC_NOTIFY_EVT, receive indicate value:");
             }
             esp_log_buffer_hex(GATTC_TAG, p_data->notify.value, p_data->notify.value_len);
-        break;
+
+            // creating finger interface task (relies on incoming bt data)
+            if(bt_shared_buffer.tast_created == 0){
+                xTaskCreate(vFingerInterface, bt_shared_buffer.finger_iface_task_name, 8056, NULL, 
+                            TASK_FINGER_IFACE_PRIORITY, &bt_shared_buffer.finger_iface_handle);
+                bt_shared_buffer.tast_created = 1;
+            }
+
+            // pasing the incoming data to the shared buffer
+            if(p_data->notify.value_len > 1){
+                bt_shared_buffer.myo_pose = p_data->notify.value[1];
+                bt_shared_buffer.data_read = 0;
+            }
+        
+            break;
+        }
+
         
         case ESP_GATTC_WRITE_DESCR_EVT:
             
@@ -380,12 +373,21 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
             ESP_LOGI(GATTC_TAG, "read char success, value = %x", *p_data->read.value);
         break;
         
-        case ESP_GATTC_DISCONNECT_EVT:
+        case ESP_GATTC_DISCONNECT_EVT:{
+
+            // flipping connection flag
             connect = false;
             get_server = false;
-            ESP_LOGI(GATTC_TAG, "ESP_GATTC_DISCONNECT_EVT, reason = %d", p_data->disconnect.reason);
-        break;
 
+            // deleting finger interface task until next BT connection is made
+            vTaskDelete(bt_shared_buffer.finger_iface_handle);
+            bt_shared_buffer.tast_created = 0;
+
+            ESP_LOGI(GATTC_TAG, "ESP_GATTC_DISCONNECT_EVT, reason = %d", p_data->disconnect.reason);
+            break;
+
+        }
+            
         default:
         break; 
     }
@@ -446,10 +448,12 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                     // only allowing connections to known adresses
                     if (compare_array(scan_result->scan_rst.bda, z_dongle_bda, 6) ||
                         compare_array(scan_result->scan_rst.bda, d_dongle_bda, 6)) {
-                        
-                        // flipping the connection state 
+                     
                         if (connect == false) {
+
+                            // flipping the connection state        
                             connect = true;
+
                             ESP_LOGI(GATTC_TAG, "connect to the remote device.");
                             esp_ble_gap_stop_scanning();
                             esp_ble_gattc_open(gl_profile_tab[PROFILE_A_APP_ID].gattc_if, scan_result->scan_rst.bda, scan_result->scan_rst.ble_addr_type, true);
@@ -512,6 +516,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 // registering the global GATT event handler : callback for events once client is connected 
 static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
 {
+
     // handling registration of application profiles
     if (event == ESP_GATTC_REG_EVT) {
         if (param->reg.status == ESP_GATT_OK) {
@@ -524,10 +529,16 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 
     // going through all the registered application profiles
     for (int idx = 0; idx < PROFILE_NUM; idx++) {
-        // calling the corresponding application profile's GATT call back
+        
         if (gattc_if == ESP_GATT_IF_NONE || gattc_if == gl_profile_tab[idx].gattc_if) {
             if (gl_profile_tab[idx].gattc_cb) {
-                gl_profile_tab[idx].gattc_cb(event, gattc_if, param);
+               
+                // only this application gets handled this way
+                if(idx == PROFILE_A_APP_ID){
+                    // calling the GATTC call back defined for this application profile
+                    gl_profile_tab[idx].gattc_cb(event, gattc_if, param);
+                }
+                
             }
         }
     }
@@ -555,6 +566,8 @@ void bt_app_launch()
 
     // controller structure to implement bluetooth on lower layers (invisible to current app)
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    uint8_t prio = bt_cfg.controller_task_prio;
+    ESP_LOGI("THESE NUTS", "BLuetooth priority : %d", prio);
     ret = esp_bt_controller_init(&bt_cfg);
     if (ret) {
         ESP_LOGE(GATTC_TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
@@ -593,7 +606,7 @@ void bt_app_launch()
         return;
     }
 
-    // registering the global GATT event handler : callback for events once client is connected
+    // registering the globmodifieal GATT event handler : callback for events once client is connected
     ret = esp_ble_gattc_register_callback(esp_gattc_cb);
     if(ret){
         ESP_LOGE(GATTC_TAG, "%s gattc register failed, error code = %x\n", __func__, ret);

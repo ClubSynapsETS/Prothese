@@ -1,9 +1,34 @@
+#ifndef FINGER_INTERFACE_H
+#define FINGER_INTERFACE_H
+
+#include <stdint.h>
+#include <string.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/timers.h"
 
 #include "driver/gpio.h"
 #include "driver/adc.h"
-#include "esp_timer.h"
 
-#include <stdint.h>
+#include "esp_adc_cal.h"
+#include "esp_timer.h"
+#include "esp_log.h"
+
+#include "../main/app_main.h"
+#include "../bluetooth/ble_app.h"
+
+#define DEFAULT_VREF 1100
+
+#define INSTRUCT_FG_OPEN  1.0
+#define INSTRUCT_FG_CLOSE 0.0
+
+#define DIR_EXTEND  1
+#define DIR_CONTRACT 2
+#define DIR_NONE     0
+
+#define N_FINGERS 4
 
 //Fingers on hand, excluding thumb.
 typedef enum
@@ -14,17 +39,30 @@ typedef enum
     auriculaire3  //Auriculaire
 } finger_id_e;
 
-//finger possible state
+//Possible prosthetic finger states
 typedef enum
 {
-    FG_CLOSED, // Voltage to position ~ min position
+    FG_CLOSED,  // Voltage to position ~ min position
     FG_CLOSING, // Voltage going toward max ( check sign of calculated slope(+))
-    FG_INVALID,// Position not min nor max and slope ~ 0 // difficult to determin?
-    FG_SET_POS, // SAme as Stuck but the controller set this positoon
+    FG_INVALID, // Position not min nor max and slope ~ 0 // difficult to determin?
+    FG_SET_POS, // SAme as Stuck but the controller set this position
     FG_OPENING, // Voltage going toward min ( slope sign (-))
-    FG_OPENED, // Voltage to position ~ max positio
-    FG_WEIRD
+    FG_OPENED,  // Voltage to position ~ max positio
+    FG_WEIRD    // my favorite
 } fg_state_e;
+
+//Incoming myo poses
+//Do not change the ordering of the members
+typedef enum
+{
+    REST,
+    FIST,
+    WAVE_IN,
+    WAVE_OUT,
+    FINGERS_SPREAD, 
+    THUMB_TO_PINKY,
+    UNKNOWN
+} myo_poses;
 
 //actuator characteristics
 typedef struct
@@ -56,10 +94,21 @@ typedef struct
     double min_position;
 
     //last state time stamp
-    uint64_t time_stamp; 
+    uint64_t time_stamp;
+
     //timer handler, it will lower gpio level when called
     esp_timer_handle_t timer_handle;
 } finger_charc_t;
+
+
+// function prototypes
+void config_actuator_channel(finger_charc_t * fg);
+uint32_t Actuator_Pos_volt(adc1_channel_t channel);
+fg_state_e actuator_state(finger_charc_t * fg);
+int finger_mouvement_planing(finger_charc_t * fg, double toplvl_instruct);
+void actuator_timer_callback(void* arg);
+void finger_control_iface(finger_charc_t * fg);
+void pose_to_finger_instructs(double* instruction, int len, int pose);
 
 
 /**************************************************************************/
@@ -74,7 +123,6 @@ void vFingerInterface( void * pvParam );
     
 /*configure pins*/
 //static void config_actuator_channel(finger_charc_t * fg);
-
 /**
  * @brief Get voltage outputed by the actuator refering to it's position.
  *
@@ -82,19 +130,20 @@ void vFingerInterface( void * pvParam );
  *
  * @return volatge: voltage in mV read on channel
  */
-//static uint32_t Actuator_Pos_volt(adc1_channel_t channel);
 
+
+//static uint32_t Actuator_Pos_volt(adc1_channel_t channel);
 /**
  * @brief Mesure position by reading the actuator's potentiometer voltage and assigning a time stamp.
  *        doing this multiple time we can detecte mouvement and direction. With these, the state can 
  *        be determined.
  *
- * @param fg: Finger that will me teste for state.
+ * @param fg: Finger that will me tested for state.
  *
  * @return state: See fg_state_e for full list of possible state.
  */
-//static fg_state_e actuator_state(finger_charc_t * fg);
 
+//static fg_state_e actuator_state(finger_charc_t * fg);
 /**
  * @brief Plan out mouvement of finger using position, state and toplevel instruction. It will edit
  *        the pq12_charact structure set_time, set_speed, and direction for lower level control.
@@ -118,7 +167,7 @@ void vFingerInterface( void * pvParam );
 
 /**
  * @brief Hardware level control of an actuator, currently it only requires a pulse on a pin to contract
- *        or extend the shaft. I will set a gpio channel to high, then starts a timer for when it is due to
+ *        or extend the shaft. It will set a gpio channel to high, then starts a timer for when it is due to
  *        set to low (pulse width).
  *
  * @param fg: Finger to control.
@@ -126,3 +175,5 @@ void vFingerInterface( void * pvParam );
  * @return None
  */
 //static void finger_control_iface(finger_charc_t * fg);
+
+#endif

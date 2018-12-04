@@ -207,7 +207,8 @@ def launch_myo_comm(pipeline_buffer_size):
     r_server = init_redis_variables(r_server)
 
     # launching the buffer maintenance as a subprocess
-    buffer_maintenance_p = Process(target=maintain_pipeline_buffer, args=(conn_pool, pipeline_buffer_size))
+    buffer_maintenance_p = Process(target=maintain_pipeline_buffer, name="myo_raw",
+                                   args=(conn_pool, pipeline_buffer_size))
     buffer_maintenance_p.start()
 
     # waiting for confirmation that myo is connected (data  is received)

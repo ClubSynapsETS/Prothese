@@ -15,4 +15,4 @@
     
 # Installing the Calibration_Pipeline package
     - Navigate to the "Calibration_Pipeline" folder
-    - pip3 install -e Calibration_Pipeline
+    - pip3 install --user -e Calibration_Pipeline
