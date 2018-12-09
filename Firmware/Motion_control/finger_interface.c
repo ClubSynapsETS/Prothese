@@ -10,7 +10,9 @@ static esp_adc_cal_characteristics_t *adc_chars;
 static actuator_instruct_t pq12_charact = 
 {
     .set_time = 0, .set_speed = 0, .direction = 0,
-    .max_speed = 6 //in mm/s, with finger load
+    .max_speed = 16 //in mm/s, with finger load
+        //0 24 mm/s
+        //1 16mm/s
 };
 
 //finger object initilisation
@@ -18,31 +20,31 @@ static finger_charc_t xfingerCharac[4] =
 {
     //Index charactheristic and componants
     { .finger_id=index0, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_0, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_3, 
         .lower_gpio=GPIO_NUM_32, .upper_gpio=GPIO_NUM_33,
-        .max_position=18.29, .min_position=6.81, .time_stamp=0,
+        .max_position=16, .min_position=6.02, .time_stamp=0,
         .stroke_num=0
     },
     //Majeur
     { .finger_id=majeur1, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_3, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_0, 
         .lower_gpio=GPIO_NUM_25, .upper_gpio=GPIO_NUM_26,
-        .max_position=16.95, .min_position=5.2, .time_stamp=0,
+        .max_position=17.20, .min_position=6, .time_stamp=0,
         .stroke_num=0
     }, 
     //Anulaire
     { .finger_id=anulaire2, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_6, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_7, 
         .lower_gpio=GPIO_NUM_14, .upper_gpio=GPIO_NUM_27,
-        .max_position=13.81, .min_position=3.34, .time_stamp=0,
+        .max_position=16.41, .min_position=5.8, .time_stamp=0,
         .stroke_num=0
     }, 
     //Auricualire
     { .finger_id=auriculaire3, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_7, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_6, 
         .lower_gpio=GPIO_NUM_12, .upper_gpio=GPIO_NUM_13,
         //hardcoded max and min position
-        .max_position=17.57, .min_position=6.5, .time_stamp=0,
+        .max_position=12.57, .min_position=2.4, .time_stamp=0,
         .stroke_num=0
     } 
 };
@@ -59,7 +61,7 @@ void vFingerInterface( void * pvParam )
     adc1_config_width(ADC_WIDTH_BIT_12);
 
     int each_fg;
-    for(each_fg=0; each_fg<=3; each_fg++) {
+    for(each_fg=0; each_fg<4; each_fg++) {
 
         //Configure ESP32 outputs
         config_actuator_channel(&xfingerCharac[each_fg]);
@@ -158,17 +160,17 @@ void pose_to_finger_instructs(double* instruction, int len, int pose){
             ESP_LOGI(ACT_TASK, "Received : FINGERS_SPREAD Pose"); 
         break; 
         case myohw_pose_wave_in:
-            instruction[0]= 1;
-            instruction[1]= 0.66;
-            instruction[2]= 0.33;
-            instruction[3]= 0;
+            instruction[0]= 0.66;
+            instruction[1]= 1;
+            instruction[2]= 0;
+            instruction[3]= 0.33;
             ESP_LOGI(ACT_TASK, "Received : WAVE_IN Pose"); 
         break;
         case myohw_pose_wave_out:
-            instruction[0]= 0;
-            instruction[1]= 0.33;
-            instruction[2]= 0.66;
-            instruction[3]= 1;
+            instruction[0]= 0.33;
+            instruction[1]= 0;
+            instruction[2]= 1;
+            instruction[3]= 0.66;
             ESP_LOGI(ACT_TASK, "Received : WAVE_OUT Pose"); 
         break;
         case myohw_pose_double_tap:

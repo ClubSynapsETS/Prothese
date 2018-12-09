@@ -63,27 +63,27 @@ void app_main(){
 
     int iteration = 0;
     // lauching the BT client
-    bt_app_launch();
+    /*bt_app_launch();*/
 
-    /*xTaskCreate(vFingerInterface, bt_shared_buffer.finger_iface_task_name, 8056, NULL, */
-                    /*TASK_FINGER_IFACE_PRIORITY, &bt_shared_buffer.finger_iface_handle);*/
+    xTaskCreate(vFingerInterface, bt_shared_buffer.finger_iface_task_name, 8056, NULL, 
+                    TASK_FINGER_IFACE_PRIORITY, &bt_shared_buffer.finger_iface_handle);
     for(;;){ 
         vTaskDelay(pdMS_TO_TICKS(3000));
         
-        /*if(iteration == 0)*/
-            /*bt_shared_buffer.myo_pose = myohw_pose_fingers_spread;*/
-        /*else if(iteration == 1)*/
-            /*bt_shared_buffer.myo_pose = myohw_pose_wave_in;*/
-        /*else if(iteration == 2)*/
-            /*bt_shared_buffer.myo_pose = myohw_pose_wave_out;*/
-        /*else if(iteration == 3)*/
-            /*bt_shared_buffer.myo_pose = myohw_pose_fist;*/
-        /*else if(iteration == 4)*/
-            /*bt_shared_buffer.myo_pose = myohw_pose_wave_in;*/
+        if(iteration == 0)
+            bt_shared_buffer.myo_pose = myohw_pose_fingers_spread;
+        else if(iteration == 1)
+            bt_shared_buffer.myo_pose = myohw_pose_fist;
+        else if(iteration == 3)
+            bt_shared_buffer.myo_pose = myohw_pose_wave_in;
+        else if(iteration == 2)
+            bt_shared_buffer.myo_pose = myohw_pose_wave_out;
+        else if(iteration == 4)
+            bt_shared_buffer.myo_pose = myohw_pose_wave_in;
         
-        /*bt_shared_buffer.data_read = 0;*/
-        /*iteration += 1;*/
-        /*if(iteration>=1) iteration =3;*/
+        bt_shared_buffer.data_read = 0;
+        iteration += 1;
+        if(iteration>1) iteration =0;
     }
 
 }
