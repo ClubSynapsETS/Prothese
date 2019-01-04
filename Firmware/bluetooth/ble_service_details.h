@@ -34,19 +34,24 @@
  *   }
  */
 
-//Static?
+// defining interface PC UUIDs
 #define ZACKB_BDA   { \
     0x00, 0x1A, 0x7D, \
     0xDA, 0x71, 0x13  \
 }
+#define DAVID_BDA   { \
+    0x30, 0x3A, 0x64, \
+    0x5E, 0x86, 0xD3  \
+}
 
+
+// defining service UUIDs
 #define MYO_MOUVEMENT_SERVICE_UUID { \
     0x49, 0x17, 0x8c, 0x65,          \
     0x00, 0x00, 0x06, 0xb5,          \
     0x4f, 0x43, 0xd5, 0x8f,          \
     0x7f, 0x97, 0xa0, 0x69           \
 }
-
 #define MYOMV_POSE_CHRC_UUID       { \
     0x49, 0x17, 0x8c, 0x65,          \
     0x01, 0x00, 0x06, 0xb5,          \
@@ -54,29 +59,3 @@
     0x7f, 0x97, 0xa0, 0x69           \
 }
 
-typedef enum 
-{
-    MouvementChrc       = 0x0001,
-    ModeChrc            = 0x0002,
-    LogsChrc            = 0x0003
-};
-
-// Defined prosthesis mouvements.
-enum prot_mv 
-{
-    MV_WRIST_FLEXION,
-    MV_WRIST_EXTENSION,
-    MV_TRIPODAL_GRASPING,
-    MV_SPHERICAL_GRASPING,
-    MV_CYLINDRICAL_GRAPSING,
-    MV_KEY_GRASPING,
-    MV_HAND_OPEN,
-    MV_HAND_CLOSE,
-    MV_RESTING
-};
-
-
-
-
-static int compare_array(uint8_t *uuidref, uint8_t *uuidcmp, int size);
-void bt_app_launch();
