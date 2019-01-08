@@ -1,0 +1,40 @@
+{    
+    "movement_info":[  
+        {
+            "name" : "hand_close",
+            "directory_path" : "path to training data ... /Training_data/Hand_close",
+            "label" : "0" 
+        },
+        {
+            "name" : "hand_open",
+            "directory_path" : "path to training data ... /Training_data/Hand_open",
+            "label" : "1" 
+        },
+        {
+            "name" : "index_close",
+            "directory_path" : "path to training data ... /Training_data/Index_close",
+            "label" : "2" 
+        },
+        {
+            "name" : "middle_finger_close",
+            "directory_path" : "path to training data ... /Training_data/Middle_finger_close",
+            "label" : "3" 
+        },
+        {
+            "name" : "thumb_close",
+            "directory_path" : "path to training data ... /Training_data/Thumb_close",
+            "label" : "4" 
+        },
+        {
+            "name" : "ring_finger_close",
+            "directory_path" : "path to training data ... /Training_data/Ring_finger_close",
+            "label" : "5" 
+        }, 
+        {
+            "name" : "pinky_finger_close",
+            "directory_path" : "path to training data ... /Training_data/Pinky_finger_close",
+            "label" : "6" 
+        }
+    ]
+}
+      
