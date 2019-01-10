@@ -1,4 +1,5 @@
 #include "finger_interface.h"
+#include "../bluetooth/myohw.h"
 
 // shared data structure for BT
 extern volatile bt_shared_data_t bt_shared_buffer;
@@ -9,7 +10,9 @@ static esp_adc_cal_characteristics_t *adc_chars;
 static actuator_instruct_t pq12_charact = 
 {
     .set_time = 0, .set_speed = 0, .direction = 0,
-    .max_speed = 26 //in mm/s, with finger load
+    .max_speed = 16 //in mm/s, with finger load
+        //0 24 mm/s
+        //1 16mm/s
 };
 
 //finger object initilisation
@@ -17,31 +20,31 @@ static finger_charc_t xfingerCharac[4] =
 {
     //Index charactheristic and componants
     { .finger_id=index0, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_0, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_3, 
         .lower_gpio=GPIO_NUM_32, .upper_gpio=GPIO_NUM_33,
-        .max_position=18.83, .min_position=5.46, .time_stamp=0 
+        .max_position=16, .min_position=6.02, .time_stamp=0,
         .stroke_num=0
     },
     //Majeur
     { .finger_id=majeur1, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_3, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_0, 
         .lower_gpio=GPIO_NUM_25, .upper_gpio=GPIO_NUM_26,
-        .max_position=18.83, .min_position=5.46, .time_stamp=0 
+        .max_position=17.20, .min_position=6, .time_stamp=0,
         .stroke_num=0
     }, 
     //Anulaire
     { .finger_id=anulaire2, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_6, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_7, 
         .lower_gpio=GPIO_NUM_14, .upper_gpio=GPIO_NUM_27,
-        .max_position=16.343, .min_position=2.873, .time_stamp=0 
+        .max_position=16.41, .min_position=5.8, .time_stamp=0,
         .stroke_num=0
     }, 
     //Auricualire
     { .finger_id=auriculaire3, .state=FG_SET_POS, .last_set_pos=10, .cur_position=0,
-        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_7, 
+        .act=&pq12_charact, .adc_channel=ADC1_CHANNEL_6, 
         .lower_gpio=GPIO_NUM_12, .upper_gpio=GPIO_NUM_13,
         //hardcoded max and min position
-        .max_position=19.28, .min_position=4.804, .time_stamp=0 
+        .max_position=12.57, .min_position=2.4, .time_stamp=0,
         .stroke_num=0
     } 
 };
@@ -50,7 +53,7 @@ static finger_charc_t xfingerCharac[4] =
 /*Module main finger interface*/
 void vFingerInterface( void * pvParam )
 {
-    double instruction[4] = {0};
+    double instruction[4] = {1,1,1,1};
   
     // calibrating the ADC1
     adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
@@ -58,7 +61,7 @@ void vFingerInterface( void * pvParam )
     adc1_config_width(ADC_WIDTH_BIT_12);
 
     int each_fg;
-    for(each_fg=0; each_fg<=3; each_fg++) {
+    for(each_fg=0; each_fg<4; each_fg++) {
 
         //Configure ESP32 outputs
         config_actuator_channel(&xfingerCharac[each_fg]);
@@ -140,25 +143,54 @@ void pose_to_finger_instructs(double* instruction, int len, int pose){
 
     double instruction_val = 0;
     int iter;
+    myohw_pose_t myo_pose =  (myohw_pose_t)pose;
 
-    switch(pose){
-        case FIST:
+    switch(myo_pose){
+        case myohw_pose_fist:
             instruction_val = INSTRUCT_FG_CLOSE;
+            for (iter=0; iter<4; iter++)
+                instruction[iter] = instruction_val;
             ESP_LOGI(ACT_TASK, "Received : FIST Pose"); 
         break;
-        case FINGERS_SPREAD:
+        case myohw_pose_fingers_spread:
             instruction_val = INSTRUCT_FG_OPEN; 
+            for (iter=0; iter<4; iter++) {
+                instruction[iter] = instruction_val;
+            }
             ESP_LOGI(ACT_TASK, "Received : FINGERS_SPREAD Pose"); 
         break; 
-        case REST:
-            instruction_val = INSTRUCT_FG_OPEN;
+        case myohw_pose_wave_in:
+            instruction[0]= 0.66;
+            instruction[1]= 1;
+            instruction[2]= 0;
+            instruction[3]= 0.33;
+            ESP_LOGI(ACT_TASK, "Received : WAVE_IN Pose"); 
+        break;
+        case myohw_pose_wave_out:
+            instruction[0]= 0.33;
+            instruction[1]= 0;
+            instruction[2]= 1;
+            instruction[3]= 0.66;
+            ESP_LOGI(ACT_TASK, "Received : WAVE_OUT Pose"); 
+        break;
+        case myohw_pose_double_tap:
+            instruction[0]= 1;
+            instruction[1]= 1;
+            instruction[2]= 0;
+            instruction[3]= 1;
+            ESP_LOGI(ACT_TASK, "Received : WAVE_OUT Pose"); 
+        break;
+        case myohw_pose_rest:
             ESP_LOGI(ACT_TASK, "Received : REST Pose"); 
         break;
+        case myohw_pose_unknown:
+            ESP_LOGI(ACT_TASK, "Unkown pose");
+        break;
+        default:
+            ESP_LOGW(ACT_TASK, "myo or code error");
+            break;
     }
 
-    for(iter=0; iter<len; iter++) {
-        instruction[iter] = instruction_val;
-    }
 
 }
 
@@ -267,24 +299,24 @@ fg_state_e actuator_state(finger_charc_t * fg)
         ESP_LOGI(ACT_TASK, "efinger%d is not moving.", (int)fg->finger_id );
         
         // actuator is stoped at an extremity
-        if(fg->cur_position >= (fg->max_position - 0.2) 
-               && fg->cur_position <= (fg->max_position + 0.1)){
+        if(fg->cur_position >= (fg->max_position - 0.5) 
+               && fg->cur_position <= (fg->max_position + 0.3)){
             return FG_OPENED;
         }
-        else if(fg->cur_position <= (fg->min_position + 0.2) 
-               && fg->cur_position >= (fg->min_position - 0.1)) {
+        else if(fg->cur_position <= (fg->min_position + 0.5) 
+               && fg->cur_position >= (fg->min_position - 0.3)) {
             return FG_CLOSED;
         }
 
         // actuator is stoped in valid range
-        else if(fg->cur_position > (fg->last_set_pos - 0.1) 
-               && fg->cur_position < (fg->last_set_pos + 0.1)) {
+        else if(fg->cur_position > (fg->last_set_pos - 0.5) 
+               && fg->cur_position < (fg->last_set_pos + 0.5)) {
             return FG_SET_POS;
         }
         
-        //were not moving and were not at any valid position, nothing special to do.
+        //were not moving and were not at any valid position, nothing special to do except moving.
         else {
-            ESP_LOGW(ACT_TASK, "Wrong Position of actuator = %f", total_speed );
+            ESP_LOGW(ACT_TASK, "Wrong Position of actuator = %f", cur_position );
             return FG_INVALID;
         }
 

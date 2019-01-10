@@ -51,19 +51,6 @@ typedef enum
     FG_WEIRD    // my favorite
 } fg_state_e;
 
-//Incoming myo poses
-//Do not change the ordering of the members
-typedef enum
-{
-    REST,
-    FIST,
-    WAVE_IN,
-    WAVE_OUT,
-    FINGERS_SPREAD, 
-    THUMB_TO_PINKY,
-    UNKNOWN
-} myo_poses;
-
 //actuator characteristics
 typedef struct
 {
